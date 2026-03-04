@@ -1,0 +1,229 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\PageRequest;
+use App\Models\Language;
+use App\Models\Page;
+use App\Models\SeoEntry;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class PageController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Page::with(['language', 'parent', 'seo'])
+            ->withCount('articles');
+
+        // Search
+        if ($search = $request->input('search')) {
+            $query->where('title', 'like', "%{$search}%");
+        }
+
+        // Filter by status
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        // Filter by language
+        if ($langId = $request->input('language_id')) {
+            $query->where('language_id', $langId);
+        }
+
+        // Filter by parent (show only root pages or children of a specific page)
+        if ($request->has('parent_id')) {
+            $parentId = $request->input('parent_id');
+            $query->where('parent_id', $parentId ?: null);
+        }
+
+        $pages = $query->orderBy('sort_order')->orderBy('title')->paginate(25);
+        $languages = Language::where('is_active', true)->get();
+
+        return view('admin.pages.index', compact('pages', 'languages'));
+    }
+
+    public function create()
+    {
+        $languages = Language::where('is_active', true)->get();
+        $parentPages = Page::whereNull('parent_id')
+            ->orderBy('title')
+            ->get(['id', 'title', 'language_id']);
+
+        return view('admin.pages.create', compact('languages', 'parentPages'));
+    }
+
+    public function store(PageRequest $request)
+    {
+        $data = $request->validated();
+
+        // Generate slug if not provided
+        if (empty($data['slug'])) {
+            $data['slug'] = $this->generateUniqueSlug($data['title']);
+        }
+
+        // Handle boolean fields
+        $data['show_in_menu'] = $request->boolean('show_in_menu');
+        $data['is_password_protected'] = $request->boolean('is_password_protected');
+        $data['show_social_share'] = $request->boolean('show_social_share');
+        $data['show_facebook_comments'] = $request->boolean('show_facebook_comments');
+        $data['show_breadcrumb'] = $request->boolean('show_breadcrumb');
+
+        // Parse layout_json
+        if (!empty($data['layout_json'])) {
+            $data['layout_json'] = json_decode($data['layout_json'], true);
+        }
+
+        $page = Page::create($data);
+
+        // Handle cover image
+        if ($request->hasFile('cover_image')) {
+            $page->addMediaFromRequest('cover_image')
+                ->toMediaCollection('cover');
+        }
+
+        // Handle SEO
+        $this->saveSeo($page, $request);
+
+        return redirect()
+            ->route('admin.pages.edit', $page)
+            ->with('success', 'Sayfa başarıyla oluşturuldu.');
+    }
+
+    public function edit(Page $page)
+    {
+        $page->load(['language', 'parent', 'seo', 'children', 'media']);
+
+        $languages = Language::where('is_active', true)->get();
+        $parentPages = Page::where('id', '!=', $page->id)
+            ->whereNull('parent_id')
+            ->orderBy('title')
+            ->get(['id', 'title', 'language_id']);
+
+        return view('admin.pages.edit', compact('page', 'languages', 'parentPages'));
+    }
+
+    public function update(PageRequest $request, Page $page)
+    {
+        $data = $request->validated();
+
+        // Generate slug if not provided
+        if (empty($data['slug'])) {
+            $data['slug'] = $this->generateUniqueSlug($data['title'], $page->id);
+        }
+
+        // Handle boolean fields
+        $data['show_in_menu'] = $request->boolean('show_in_menu');
+        $data['is_password_protected'] = $request->boolean('is_password_protected');
+        $data['show_social_share'] = $request->boolean('show_social_share');
+        $data['show_facebook_comments'] = $request->boolean('show_facebook_comments');
+        $data['show_breadcrumb'] = $request->boolean('show_breadcrumb');
+
+        // Parse layout_json
+        if (!empty($data['layout_json'])) {
+            $data['layout_json'] = json_decode($data['layout_json'], true);
+        }
+
+        $page->update($data);
+
+        // Handle cover image
+        if ($request->hasFile('cover_image')) {
+            $page->clearMediaCollection('cover');
+            $page->addMediaFromRequest('cover_image')
+                ->toMediaCollection('cover');
+        }
+
+        // Handle SEO
+        $this->saveSeo($page, $request);
+
+        return redirect()
+            ->route('admin.pages.edit', $page)
+            ->with('success', 'Sayfa başarıyla güncellendi.');
+    }
+
+    public function destroy(Page $page)
+    {
+        // Soft delete - children will become orphaned, warn user
+        if ($page->children()->count() > 0) {
+            return back()->with('error', 'Bu sayfanın alt sayfaları var. Önce alt sayfaları silin veya taşıyın.');
+        }
+
+        $page->delete();
+
+        return redirect()
+            ->route('admin.pages.index')
+            ->with('success', 'Sayfa başarıyla silindi.');
+    }
+
+    /**
+     * Reorder pages via AJAX.
+     */
+    public function reorder(Request $request)
+    {
+        $request->validate(['items' => 'required|array']);
+
+        foreach ($request->items as $index => $item) {
+            Page::where('id', $item['id'])->update([
+                'sort_order' => $index,
+                'parent_id' => $item['parent_id'] ?? null,
+            ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Save/update SEO entry for a page.
+     */
+    protected function saveSeo(Page $page, Request $request): void
+    {
+        if ($request->filled('seo_title') || $request->filled('seo_description') || $request->filled('seo_keywords')) {
+            $page->seo()->updateOrCreate(
+                ['seoable_id' => $page->id, 'seoable_type' => Page::class],
+                [
+                    'slug' => $page->slug,
+                    'language_id' => $page->language_id,
+                    'meta_title' => $request->input('seo_title'),
+                    'meta_description' => $request->input('seo_description'),
+                    'meta_keywords' => $request->input('seo_keywords'),
+                    'h1_override' => $request->input('seo_h1'),
+                    'canonical_url' => $request->input('seo_canonical'),
+                    'is_noindex' => $request->boolean('seo_noindex'),
+                ]
+            );
+        }
+    }
+
+    /**
+     * Generate a unique slug with Turkish character support.
+     */
+    protected function generateUniqueSlug(string $title, ?int $excludeId = null): string
+    {
+        $turkishMap = [
+            'ç' => 'c', 'Ç' => 'c', 'ğ' => 'g', 'Ğ' => 'g',
+            'ı' => 'i', 'İ' => 'i', 'ö' => 'o', 'Ö' => 'o',
+            'ş' => 's', 'Ş' => 's', 'ü' => 'u', 'Ü' => 'u',
+        ];
+
+        $slug = Str::slug(strtr($title, $turkishMap));
+
+        $original = $slug;
+        $counter = 1;
+        $query = Page::where('slug', $slug);
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        while ($query->exists()) {
+            $slug = $original . '-' . $counter++;
+            $query = Page::where('slug', $slug);
+            if ($excludeId) {
+                $query->where('id', '!=', $excludeId);
+            }
+        }
+
+        return $slug;
+    }
+}

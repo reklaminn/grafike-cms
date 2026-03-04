@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Form extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'name', 'slug', 'description', 'is_active', 'requires_captcha',
+        'notification_email', 'smtp_host', 'smtp_port', 'smtp_username',
+        'smtp_password', 'smtp_encryption', 'allow_submissions', 'allow_listing',
+        'save_to_database', 'language_id', 'legacy_id',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'requires_captcha' => 'boolean',
+            'allow_submissions' => 'boolean',
+            'allow_listing' => 'boolean',
+            'save_to_database' => 'boolean',
+        ];
+    }
+
+    public function fields()
+    {
+        return $this->hasMany(FormField::class)->orderBy('sort_order');
+    }
+
+    public function submissions()
+    {
+        return $this->hasMany(FormSubmission::class);
+    }
+
+    public function language()
+    {
+        return $this->belongsTo(Language::class);
+    }
+}

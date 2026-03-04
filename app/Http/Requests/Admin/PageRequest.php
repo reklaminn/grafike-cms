@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class PageRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // Auth handled by middleware
+    }
+
+    public function rules(): array
+    {
+        $pageId = $this->route('page')?->id;
+
+        return [
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => [
+                'nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]+$/',
+                Rule::unique('pages', 'slug')->ignore($pageId),
+            ],
+            'parent_id' => ['nullable', 'exists:pages,id'],
+            'language_id' => ['required', 'exists:languages,id'],
+            'status' => ['required', Rule::in(['draft', 'published', 'archived'])],
+            'template' => ['nullable', 'string', 'max:100'],
+            'page_template' => ['nullable', 'string', 'max:100'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'show_in_menu' => ['boolean'],
+            'is_password_protected' => ['boolean'],
+            'page_password' => ['nullable', 'string', 'max:255'],
+            'show_social_share' => ['boolean'],
+            'show_facebook_comments' => ['boolean'],
+            'show_breadcrumb' => ['boolean'],
+            'external_url' => ['nullable', 'url', 'max:500'],
+            'link_target' => ['nullable', Rule::in(['_self', '_blank'])],
+            'layout_json' => ['nullable', 'json'],
+            'cover_image' => ['nullable', 'image', 'max:5120'],
+
+            // SEO fields
+            'seo_title' => ['nullable', 'string', 'max:255'],
+            'seo_description' => ['nullable', 'string', 'max:500'],
+            'seo_keywords' => ['nullable', 'string', 'max:500'],
+            'seo_h1' => ['nullable', 'string', 'max:255'],
+            'seo_canonical' => ['nullable', 'url', 'max:500'],
+            'seo_noindex' => ['boolean'],
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'title' => 'Sayfa başlığı',
+            'slug' => 'URL slug',
+            'parent_id' => 'Üst sayfa',
+            'language_id' => 'Dil',
+            'status' => 'Durum',
+            'sort_order' => 'Sıralama',
+            'cover_image' => 'Kapak görseli',
+            'seo_title' => 'SEO başlık',
+            'seo_description' => 'SEO açıklama',
+        ];
+    }
+}

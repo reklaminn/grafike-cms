@@ -1,0 +1,136 @@
+<?php
+
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\ArticleController;
+use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DesignController;
+use App\Http\Controllers\Admin\FormController;
+use App\Http\Controllers\Admin\LanguageController;
+use App\Http\Controllers\Admin\MaintenanceController;
+use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\MemberController;
+use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\PageController;
+use App\Http\Controllers\Admin\RedirectController;
+use App\Http\Controllers\Admin\ReviewController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SeoController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SitemapController;
+use App\Http\Controllers\Admin\SmtpProfileController;
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\CurrencyController;
+use App\Http\Controllers\Admin\AiAssistantController;
+use Illuminate\Support\Facades\Route;
+
+// Admin Auth Routes
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('login', [AuthController::class, 'login'])->name('login.submit');
+    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Protected Admin Routes
+    Route::middleware('admin.auth')->group(function () {
+        // Dashboard
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+        // Pages CRUD
+        Route::resource('pages', PageController::class);
+        Route::post('pages/reorder', [PageController::class, 'reorder'])->name('pages.reorder');
+
+        // Articles CRUD
+        Route::resource('articles', ArticleController::class);
+
+        // Menus CRUD
+        Route::resource('menus', MenuController::class);
+        Route::post('menus/{menu}/items', [MenuController::class, 'addItem'])->name('menus.add-item');
+        Route::put('menus/{menu}/items/reorder', [MenuController::class, 'reorderItems'])->name('menus.reorder-items');
+        Route::delete('menus/{menu}/items/{item}', [MenuController::class, 'deleteItem'])->name('menus.delete-item');
+
+        // Forms CRUD
+        Route::resource('forms', FormController::class);
+        Route::get('forms/{form}/submissions', [FormController::class, 'submissions'])->name('forms.submissions');
+        Route::post('forms/{form}/fields', [FormController::class, 'saveField'])->name('forms.save-field');
+        Route::delete('forms/{form}/fields/{field}', [FormController::class, 'deleteField'])->name('forms.delete-field');
+        Route::get('forms/{form}/export', [FormController::class, 'exportSubmissions'])->name('forms.export');
+
+        // SEO Management
+        Route::get('seo', [SeoController::class, 'index'])->name('seo.index');
+        Route::get('seo/analysis', [SeoController::class, 'bulkAnalysis'])->name('seo.analysis');
+        Route::get('seo/{seoEntry}/edit', [SeoController::class, 'edit'])->name('seo.edit');
+        Route::put('seo/{seoEntry}', [SeoController::class, 'update'])->name('seo.update');
+        Route::delete('seo/{seoEntry}', [SeoController::class, 'destroy'])->name('seo.destroy');
+
+        // Redirects Management
+        Route::resource('redirects', RedirectController::class)->except('show');
+        Route::post('redirects/{redirect}/reset-hits', [RedirectController::class, 'resetHits'])->name('redirects.reset-hits');
+        Route::get('redirects-import', [RedirectController::class, 'showImport'])->name('redirects.import');
+        Route::post('redirects-import', [RedirectController::class, 'processImport'])->name('redirects.process-import');
+
+        // Sitemap Configuration
+        Route::get('sitemap', [SitemapController::class, 'index'])->name('sitemap.index');
+        Route::put('sitemap', [SitemapController::class, 'update'])->name('sitemap.update');
+
+        // Media Library
+        Route::get('media', [MediaController::class, 'index'])->name('media.index');
+        Route::post('media/upload', [MediaController::class, 'upload'])->name('media.upload');
+        Route::get('media/{medium}', [MediaController::class, 'show'])->name('media.show');
+        Route::put('media/{medium}', [MediaController::class, 'update'])->name('media.update');
+        Route::delete('media/{medium}', [MediaController::class, 'destroy'])->name('media.destroy');
+        Route::post('media/bulk-destroy', [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
+
+        // Reviews Moderation
+        Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        Route::post('reviews/{review}/approve', [ReviewController::class, 'approve'])->name('reviews.approve');
+        Route::post('reviews/{review}/reject', [ReviewController::class, 'reject'])->name('reviews.reject');
+        Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+        Route::post('reviews/bulk-approve', [ReviewController::class, 'bulkApprove'])->name('reviews.bulk-approve');
+        Route::post('reviews/bulk-destroy', [ReviewController::class, 'bulkDestroy'])->name('reviews.bulk-destroy');
+
+        // Members Management
+        Route::resource('members', MemberController::class)->except('show');
+        Route::post('members/{member}/toggle-active', [MemberController::class, 'toggleActive'])->name('members.toggle-active');
+
+        // Languages Management
+        Route::resource('languages', LanguageController::class)->except('show');
+        Route::get('languages-translations', [LanguageController::class, 'translations'])->name('languages.translations');
+        Route::post('languages-translations', [LanguageController::class, 'saveTranslation'])->name('languages.save-translation');
+        Route::delete('languages-translations/{translation}', [LanguageController::class, 'deleteTranslation'])->name('languages.delete-translation');
+
+        // Design (CSS/JS Editor)
+        Route::get('design', [DesignController::class, 'index'])->name('design.index');
+        Route::put('design', [DesignController::class, 'update'])->name('design.update');
+
+        // SMTP Profiles
+        Route::resource('smtp-profiles', SmtpProfileController::class)->except('show');
+        Route::post('smtp-profiles/{smtp_profile}/test', [SmtpProfileController::class, 'sendTest'])->name('smtp-profiles.test');
+
+        // Currencies
+        Route::resource('currencies', CurrencyController::class)->except('show');
+        Route::post('currencies/fetch-rates', [CurrencyController::class, 'fetchRates'])->name('currencies.fetch-rates');
+
+        // Admin Users
+        Route::resource('admin-users', AdminUserController::class)->except('show');
+        Route::post('admin-users/{admin_user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('admin-users.toggle-status');
+
+        // Roles & Permissions
+        Route::resource('roles', RoleController::class)->except('show');
+
+        // Maintenance / DB Cleanup
+        Route::get('maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
+        Route::post('maintenance/cleanup', [MaintenanceController::class, 'cleanup'])->name('maintenance.cleanup');
+
+        // Activity Log
+        Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
+
+        // AI Assistant API
+        Route::post('ai/translate', [AiAssistantController::class, 'translate'])->name('ai.translate');
+        Route::post('ai/rewrite', [AiAssistantController::class, 'rewrite'])->name('ai.rewrite');
+        Route::post('ai/generate-meta', [AiAssistantController::class, 'generateMeta'])->name('ai.generate-meta');
+
+        // Settings
+        Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+    });
+});
