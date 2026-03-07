@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Admin Panel') - {{ config('cms.name', 'IRASPA CMS') }}</title>
+    <title>@yield('title', 'Admin Panel') - {{ config('cms.name', 'Grafike CMS') }}</title>
 
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -36,9 +36,9 @@
         <div class="flex h-16 items-center justify-between px-4 border-b border-gray-200">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
                 <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                    <span class="text-white font-bold text-sm">I</span>
+                    <span class="text-white font-bold text-sm">G</span>
                 </div>
-                <span x-show="sidebarOpen" x-transition class="font-bold text-gray-800">IRASPA CMS</span>
+                <span x-show="sidebarOpen" x-transition class="font-bold text-gray-800">Grafike CMS</span>
             </a>
             <button @click="sidebarOpen = !sidebarOpen" class="text-gray-400 hover:text-gray-600">
                 <i class="fas fa-bars"></i>
@@ -62,7 +62,7 @@
            x-transition:leave-end="-translate-x-full">
 
         <div class="flex h-16 items-center justify-between px-4 border-b">
-            <span class="font-bold text-gray-800">IRASPA CMS</span>
+            <span class="font-bold text-gray-800">Grafike CMS</span>
             <button @click="mobileMenuOpen = false" class="text-gray-400 hover:text-gray-600">
                 <i class="fas fa-times"></i>
             </button>

@@ -19,7 +19,7 @@ class DemoSeeder extends Seeder
         $admin = Admin::create([
             'username' => 'admin',
             'name' => 'Site Yöneticisi',
-            'email' => 'admin@iraspa.com',
+            'email' => 'admin@grafike.com',
             'password' => 'admin123',
         ]);
         $this->command->info('✓ Admin oluşturuldu: admin / admin123');
@@ -46,11 +46,11 @@ class DemoSeeder extends Seeder
 
         // ─── Site Settings ───────────────────────────
         $settings = [
-            ['key' => 'site.title', 'value' => 'IRASPA Demo', 'group' => 'general'],
-            ['key' => 'site.company_name', 'value' => 'IRASPA Ltd.', 'group' => 'general'],
-            ['key' => 'site.footer_text', 'value' => '© 2026 IRASPA. Tüm hakları saklıdır.', 'group' => 'general'],
+            ['key' => 'site.title', 'value' => 'Grafike Demo', 'group' => 'general'],
+            ['key' => 'site.company_name', 'value' => 'Grafike Ltd.', 'group' => 'general'],
+            ['key' => 'site.footer_text', 'value' => '© 2026 Grafike. Tüm hakları saklıdır.', 'group' => 'general'],
             ['key' => 'contact.phone', 'value' => '+90 212 555 0000', 'group' => 'contact'],
-            ['key' => 'contact.email', 'value' => 'info@iraspa.com', 'group' => 'contact'],
+            ['key' => 'contact.email', 'value' => 'info@grafike.com', 'group' => 'contact'],
             ['key' => 'contact.address', 'value' => 'İstanbul, Türkiye', 'group' => 'contact'],
         ];
 
@@ -99,8 +99,8 @@ class DemoSeeder extends Seeder
             'seoable_type' => Page::class,
             'slug' => 'ana-sayfa',
             'language_id' => $tr->id,
-            'meta_title' => 'IRASPA Demo - Ana Sayfa',
-            'meta_description' => 'IRASPA CMS demo sitesi ana sayfası',
+            'meta_title' => 'Grafike Demo - Ana Sayfa',
+            'meta_description' => 'Grafike CMS demo sitesi ana sayfası',
         ]);
 
         // Update config homepage_id
@@ -148,8 +148,8 @@ class DemoSeeder extends Seeder
             'seoable_type' => Page::class,
             'slug' => 'hakkimizda',
             'language_id' => $tr->id,
-            'meta_title' => 'Hakkımızda - IRASPA Demo',
-            'meta_description' => 'IRASPA hakkında bilgiler',
+            'meta_title' => 'Hakkımızda - Grafike Demo',
+            'meta_description' => 'Grafike hakkında bilgiler',
         ]);
         $this->command->info('✓ Hakkımızda sayfası oluşturuldu');
 
@@ -196,8 +196,8 @@ class DemoSeeder extends Seeder
             'seoable_type' => Page::class,
             'slug' => 'blog',
             'language_id' => $tr->id,
-            'meta_title' => 'Blog - IRASPA Demo',
-            'meta_description' => 'IRASPA Demo blog yazıları',
+            'meta_title' => 'Blog - Grafike Demo',
+            'meta_description' => 'Grafike Demo blog yazıları',
         ]);
 
         // Blog Articles
@@ -274,7 +274,7 @@ class DemoSeeder extends Seeder
             'seoable_type' => Page::class,
             'slug' => 'iletisim',
             'language_id' => $tr->id,
-            'meta_title' => 'İletişim - IRASPA Demo',
+            'meta_title' => 'İletişim - Grafike Demo',
             'meta_description' => 'Bizimle iletişime geçin',
         ]);
         $this->command->info('✓ İletişim sayfası oluşturuldu');

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Giriş - {{ config('cms.name', 'IRASPA CMS') }}</title>
+    <title>Giriş - {{ config('cms.name', 'Grafike CMS') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -14,9 +14,9 @@
             <!-- Logo -->
             <div class="text-center">
                 <div class="mx-auto w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4">
-                    <span class="text-white font-bold text-2xl">I</span>
+                    <span class="text-white font-bold text-2xl">G</span>
                 </div>
-                <h2 class="text-3xl font-bold tracking-tight text-gray-900">IRASPA CMS</h2>
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Grafike CMS</h2>
                 <p class="mt-2 text-sm text-gray-600">Yönetim paneline giriş yapın</p>
             </div>
 

@@ -35,7 +35,7 @@ class MigrateAllCommand extends Command
     {
         $this->newLine();
         $this->info('╔══════════════════════════════════════════════╗');
-        $this->info('║     IRASPA Legacy CMS → Laravel Migration    ║');
+        $this->info('║     Grafike Legacy CMS → Laravel Migration    ║');
         $this->info('║          Full Data Migration Suite            ║');
         $this->info('╚══════════════════════════════════════════════╝');
         $this->newLine();

@@ -111,7 +111,7 @@ class SmtpProfileController extends Controller
             $email = (new \Symfony\Component\Mime\Email())
                 ->from(new \Symfony\Component\Mime\Address($smtp_profile->from_email, $smtp_profile->from_name))
                 ->to($request->test_email)
-                ->subject('IRASPA CMS - SMTP Test')
+                ->subject('Grafike CMS - SMTP Test')
                 ->text('Bu bir test e-postasıdır. SMTP profili başarıyla çalışıyor.');
 
             $transport->send($email);

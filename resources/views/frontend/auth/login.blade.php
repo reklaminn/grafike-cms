@@ -9,7 +9,7 @@
 <body class="antialiased bg-gray-50 min-h-screen flex items-center justify-center">
     <div class="max-w-md w-full mx-4">
         <div class="text-center mb-8">
-            <a href="/" class="text-2xl font-bold text-gray-900">{{ config('cms.name', 'IRASPA CMS') }}</a>
+            <a href="/" class="text-2xl font-bold text-gray-900">{{ config('cms.name', 'Grafike CMS') }}</a>
             <h1 class="text-xl text-gray-600 mt-2">Giriş Yap</h1>
         </div>
 

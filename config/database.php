@@ -115,7 +115,7 @@ return [
 
         /*
         |--------------------------------------------------------------------------
-        | Legacy ASP CMS Database Connection (iraspa-db1)
+        | Legacy ASP CMS Database Connection (grafike-db1)
         |--------------------------------------------------------------------------
         | Used by migrate:legacy:* commands to read data from the old CMS database.
         | Original charset is latin5 (ISO 8859-9 Turkish).
@@ -124,8 +124,8 @@ return [
             'driver' => 'mysql',
             'host' => env('LEGACY_DB_HOST', 'localhost'),
             'port' => env('LEGACY_DB_PORT', '3306'),
-            'database' => env('LEGACY_DB_DATABASE', 'iraspa-db1'),
-            'username' => env('LEGACY_DB_USERNAME', 'iraspadb'),
+            'database' => env('LEGACY_DB_DATABASE', 'grafike-db1'),
+            'username' => env('LEGACY_DB_USERNAME', 'grafikedb'),
             'password' => env('LEGACY_DB_PASSWORD', ''),
             'charset' => 'latin1',
             'collation' => 'latin1_general_ci',

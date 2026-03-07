@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════
-# IRASPA CMS - Production Deployment Script
+# Grafike CMS - Production Deployment Script
 # ═══════════════════════════════════════════════════════════
 set -e
 
@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}═══════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  IRASPA CMS - Deployment Script${NC}"
+echo -e "${BLUE}  Grafike CMS - Deployment Script${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════${NC}"
 echo ""
 

@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'name' => env('CMS_NAME', 'IRASPA CMS'),
+    'name' => env('CMS_NAME', 'Grafike CMS'),
     'version' => '2.0.0',
     'default_language' => env('CMS_DEFAULT_LANGUAGE', 'tr'),
     'default_language_id' => env('CMS_DEFAULT_LANGUAGE_ID', 1),

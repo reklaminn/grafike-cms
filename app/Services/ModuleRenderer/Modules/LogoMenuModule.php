@@ -21,7 +21,7 @@ class LogoMenuModule extends BaseModule
     protected function getData(array $config, Page $page, ?Article $article): array
     {
         return [
-            'siteName' => SiteSetting::get('site.title', config('cms.name', 'IRASPA')),
+            'siteName' => SiteSetting::get('site.title', config('cms.name', 'Grafike')),
             'logoUrl' => SiteSetting::get('design.logo_url', ''),
             'logoCss' => SiteSetting::get('design.logo_css', ''),
             'showMobileToggle' => $config['mobile'] ?? true,

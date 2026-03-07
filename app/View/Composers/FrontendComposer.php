@@ -22,7 +22,7 @@ class FrontendComposer
 
         // Site settings (cached per key in SiteSetting::get)
         $siteSettings = [
-            'site_name' => SiteSetting::get('site.title', config('cms.name', 'IRASPA CMS')),
+            'site_name' => SiteSetting::get('site.title', config('cms.name', 'Grafike CMS')),
             'site_logo' => SiteSetting::get('design.logo_url', ''),
             'site_favicon' => SiteSetting::get('design.favicon_url', ''),
             'footer_text' => SiteSetting::get('site.footer_text', ''),

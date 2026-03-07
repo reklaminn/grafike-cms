@@ -24,7 +24,7 @@ class MigrateMediaCommand extends BaseMigrationCommand
         }
 
         $sourcePath = $this->option('source-path')
-            ?? config('cms.legacy_media_path', '/Users/eserulusoy/Downloads/iraspa');
+            ?? config('cms.legacy_media_path', '/Users/eserulusoy/Downloads/grafike');
 
         $this->info("  📂 Source path: {$sourcePath}");
 

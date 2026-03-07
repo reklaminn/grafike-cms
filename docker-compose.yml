@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════
-# IRASPA CMS - Docker Compose
+# Grafike CMS - Docker Compose
 # ═══════════════════════════════════════════════
 # Usage:
 #   Development: docker compose up -d
@@ -11,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: iraspa-cms
+    container_name: grafike-cms
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:80"
@@ -21,8 +21,8 @@ services:
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-iraspa_cms}
-      - DB_USERNAME=${DB_USERNAME:-iraspa}
+      - DB_DATABASE=${DB_DATABASE:-grafike_cms}
+      - DB_USERNAME=${DB_USERNAME:-grafike}
       - DB_PASSWORD=${DB_PASSWORD:-secret}
       - CACHE_STORE=redis
       - SESSION_DRIVER=redis
@@ -37,14 +37,14 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - iraspa
+      - grafike
 
   # ─── Queue Worker ────────────────────────────
   queue:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: iraspa-queue
+    container_name: grafike-queue
     restart: unless-stopped
     command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
     environment:
@@ -52,8 +52,8 @@ services:
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-iraspa_cms}
-      - DB_USERNAME=${DB_USERNAME:-iraspa}
+      - DB_DATABASE=${DB_DATABASE:-grafike_cms}
+      - DB_USERNAME=${DB_USERNAME:-grafike}
       - DB_PASSWORD=${DB_PASSWORD:-secret}
       - CACHE_STORE=redis
       - REDIS_HOST=redis
@@ -63,14 +63,14 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - iraspa
+      - grafike
 
   # ─── Scheduler ───────────────────────────────
   scheduler:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: iraspa-scheduler
+    container_name: grafike-scheduler
     restart: unless-stopped
     command: >
       sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
@@ -79,8 +79,8 @@ services:
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-iraspa_cms}
-      - DB_USERNAME=${DB_USERNAME:-iraspa}
+      - DB_DATABASE=${DB_DATABASE:-grafike_cms}
+      - DB_USERNAME=${DB_USERNAME:-grafike}
       - DB_PASSWORD=${DB_PASSWORD:-secret}
       - CACHE_STORE=redis
       - REDIS_HOST=redis
@@ -90,17 +90,17 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - iraspa
+      - grafike
 
   # ─── MySQL ───────────────────────────────────
   mysql:
     image: mysql:8.0
-    container_name: iraspa-mysql
+    container_name: grafike-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
-      MYSQL_DATABASE: ${DB_DATABASE:-iraspa_cms}
-      MYSQL_USER: ${DB_USERNAME:-iraspa}
+      MYSQL_DATABASE: ${DB_DATABASE:-grafike_cms}
+      MYSQL_USER: ${DB_USERNAME:-grafike}
       MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
     ports:
       - "${DB_PORT:-3306}:3306"
@@ -117,12 +117,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - iraspa
+      - grafike
 
   # ─── Redis ───────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: iraspa-redis
+    container_name: grafike-redis
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -135,7 +135,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - iraspa
+      - grafike
 
 # ─── Volumes ─────────────────────────────────────
 volumes:
@@ -150,5 +150,5 @@ volumes:
 
 # ─── Networks ────────────────────────────────────
 networks:
-  iraspa:
+  grafike:
     driver: bridge

@@ -138,8 +138,8 @@ abstract class BaseMigrationCommand extends Command
             $this->warn("Please configure the legacy database connection in .env:");
             $this->line("  LEGACY_DB_HOST=localhost");
             $this->line("  LEGACY_DB_PORT=3306");
-            $this->line("  LEGACY_DB_DATABASE=iraspa-db1");
-            $this->line("  LEGACY_DB_USERNAME=iraspadb");
+            $this->line("  LEGACY_DB_DATABASE=grafike-db1");
+            $this->line("  LEGACY_DB_USERNAME=grafikedb");
             $this->line("  LEGACY_DB_PASSWORD=your_password");
             return false;
         }

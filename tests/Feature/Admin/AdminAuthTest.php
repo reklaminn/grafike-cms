@@ -21,7 +21,7 @@ class AdminAuthTest extends TestCase
     {
         $admin = Admin::factory()->create([
             'username' => 'admin',
-            'email' => 'admin@iraspa.com',
+            'email' => 'admin@grafike.com',
             'password' => 'password123',
         ]);
 
@@ -38,12 +38,12 @@ class AdminAuthTest extends TestCase
     {
         $admin = Admin::factory()->create([
             'username' => 'admin',
-            'email' => 'admin@iraspa.com',
+            'email' => 'admin@grafike.com',
             'password' => 'password123',
         ]);
 
         $response = $this->post(route('admin.login.submit'), [
-            'username' => 'admin@iraspa.com',
+            'username' => 'admin@grafike.com',
             'password' => 'password123',
         ]);
 
@@ -68,7 +68,7 @@ class AdminAuthTest extends TestCase
     {
         $admin = Admin::factory()->create([
             'username' => 'legacy',
-            'email' => 'legacy@iraspa.com',
+            'email' => 'legacy@grafike.com',
             'password' => 'not-used',
             'legacy_password' => md5('legacy123'),
         ]);

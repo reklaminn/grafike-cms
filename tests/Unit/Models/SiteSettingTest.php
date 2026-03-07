@@ -15,12 +15,12 @@ class SiteSettingTest extends TestCase
     {
         SiteSetting::factory()->create([
             'key' => 'site_name',
-            'value' => 'IRASPA',
+            'value' => 'Grafike',
         ]);
 
         $this->assertDatabaseHas('site_settings', [
             'key' => 'site_name',
-            'value' => 'IRASPA',
+            'value' => 'Grafike',
         ]);
     }
 

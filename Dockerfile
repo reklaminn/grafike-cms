@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════
-# IRASPA CMS - Production Dockerfile
+# Grafike CMS - Production Dockerfile
 # ═══════════════════════════════════════════════
 # Multi-stage build for optimal image size
 

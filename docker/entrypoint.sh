@@ -1,11 +1,11 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
-# IRASPA CMS - Docker Entrypoint
+# Grafike CMS - Docker Entrypoint
 # ═══════════════════════════════════════════════
 
 set -e
 
-echo "🚀 Starting IRASPA CMS..."
+echo "🚀 Starting Grafike CMS..."
 
 # ─── Generate Key if Missing ─────────────────
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
@@ -37,7 +37,7 @@ mkdir -p /var/log/supervisor
 echo "🏥 Running health check..."
 php artisan cms:health || echo "⚠️  Health check reported issues"
 
-echo "✅ IRASPA CMS is ready!"
+echo "✅ Grafike CMS is ready!"
 echo ""
 
 # Execute the CMD
