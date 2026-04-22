@@ -10,7 +10,11 @@ function escapeHtml(value: string | number | boolean | null | undefined): string
 }
 
 function renderTemplateString(template: string, content: PageSection["content"]): string {
-  return template.replaceAll(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_match, key: string) => {
+  const withRawValues = template.replaceAll(/{{{\s*([a-zA-Z0-9_]+)\s*}}}/g, (_match, key: string) => {
+    return String(content[key] ?? "");
+  });
+
+  return withRawValues.replaceAll(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_match, key: string) => {
     return escapeHtml(content[key]);
   });
 }

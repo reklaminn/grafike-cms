@@ -40,7 +40,10 @@ varyasyonları ile render edilir.
 ## Bu Repoda Şu An Ne Var
 
 - mimari dokümanı
-- monorepo iskelet önerisi
+- Laravel public API katmanı
+- gerçek çalışan `apps/frontend` Next.js iskeleti
+- demo `theme + site + section template + page` seed akışı
+- backend-driven Basic HTML Section Mode örneği
 - örnek theme pack dosyası
 - örnek site template dosyası
 
@@ -95,8 +98,38 @@ Başlangıç için önerilen tema aileleri:
 - `porto-corporate`
 - `woodmart-fashion`
 
+## Local Test
+
+Bu repo artık yerelde uçtan uca test edilebilir ilk Faz 1 eşiğine geldi.
+
+Tam çalışma akışı:
+
+- [docs/local-fullstack-runbook.md](docs/local-fullstack-runbook.md)
+
+Kısa sürüm:
+
+```bash
+cd /Volumes/Dev/iraspa-cms
+php artisan migrate:fresh --seed
+php artisan serve
+```
+
+İkinci terminal:
+
+```bash
+cd /Volumes/Dev/iraspa-cms/apps/frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Sonra:
+
+- `http://127.0.0.1:3000`
+- `http://127.0.0.1:3000/home`
+
 ## Not
 
-Bu repo şu aşamada üretim kodundan çok ürün mimarisi ve başlangıç yapısını
-toplamak için kullanılıyor. Kod geçişi fazlı ilerlemeli; mevcut Laravel CMS
+Bu repo artık sadece mimari doküman değil; Faz 1 seviyesinde çalışan bir
+proof-of-concept içeriyor. Kod geçişi yine fazlı ilerlemeli; mevcut Laravel CMS
 aniden taşınmamalı.
