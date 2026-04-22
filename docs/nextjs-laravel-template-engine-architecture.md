@@ -37,6 +37,45 @@ Bugünkü fiili yöntem:
 - Site Instance
 - Theme Tokens
 - Controlled Custom CSS/JS
+- Region-based frontend builder
+
+## Frontend Editör Omurgası
+
+Yeni sistem, eski builder hissini tamamen atmayacak.
+
+Kalıcı editör modeli:
+
+- `Header`
+- `Body`
+- `Footer`
+
+Her bölge içinde:
+
+- `Row`
+- `Column`
+- `Block / Component`
+
+Yani kullanıcı akışı şu mantıkta kalabilir:
+
+- header satır ekle
+- kolon ekle
+- block ekle
+
+Ama teknik taraf artık eski `layout_json` olmayacak.
+
+Yeni veri kaynağı:
+
+- `sections_json`
+- region tabanlı frontend editörü
+- `render_mode`
+- `component_key`
+
+Bu kararın anlamı:
+
+- Basic HTML Section Mode ve Structured Component Mode aynı editörü paylaşır
+- Faz 1'de block'lar çoğunlukla `html` render edilir
+- Faz 2'de aynı block yapısı `component` render'a taşınır
+- ikinci bir builder yazmak gerekmez
 
 ## Ana Kavramlar
 
@@ -90,6 +129,8 @@ Bir section sadece tip değil, aynı zamanda varyasyon da taşır:
 - `blog-list.magazine`
 - `testimonials.carousel`
 - `testimonials.grid`
+
+Bu tanımlar editörde gerçek "block" seçenekleri olarak görünür.
 
 ### 3. Template
 
@@ -323,12 +364,16 @@ Next.js tarafında her section şu mantıkla çalışır:
 - `type`
 - `variation`
 - `props/content`
+- `render_mode`
 
 Renderer:
 
 1. section type'ı okur
 2. variation'ı çözer
-3. doğru React component'ini çağırır
+3. `render_mode` değerine göre
+   - backend driven `html_template`
+   - veya React component
+   seçer
 
 Örnek:
 
@@ -336,11 +381,16 @@ Renderer:
 renderSection({
   type: 'hero',
   variation: 'porto-split',
+  renderMode: 'html',
   content: { ... }
 })
 ```
 
-Bu sayede Porto ve Woodmart aynı veri modelini paylaşır, yalnız render varyasyonu değişir.
+Bu sayede:
+
+- Porto ve Woodmart aynı veri modelini paylaşır
+- Faz 1 ile Faz 2 arasında editör değişmez
+- yalnız render varyasyonu ve motoru değişir
 
 ## Laravel API Katmanı
 

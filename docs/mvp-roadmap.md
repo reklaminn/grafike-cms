@@ -9,6 +9,7 @@ Bu proje için kesin başlangıç kararı:
 - ilk teslim modeli: `Basic HTML Section Mode`
 - ikinci ana evrim: `Structured Component Mode`
 - uzun vadeli hedef: hibrit sistem
+- editör omurgası: `Header / Body / Footer + Row / Column / Block`
 
 Bu kararın sebebi:
 
@@ -46,8 +47,10 @@ Kapsam:
 - theme pack sistemi
 - tema CSS/JS asset tanımı
 - HTML section snippet modeli
-- sayfa bazlı section sıralama
-- aktif/pasif section kontrolü
+- region tabanlı frontend editörü (`header/body/footer`)
+- satır / kolon / block veri modeli
+- sayfa bazlı block sıralama
+- aktif/pasif row/column/block kontrolü
 - sayfa bazlı custom css/js
 - global custom css/js
 - backend Sentry entegrasyon planı
@@ -82,6 +85,7 @@ Başarı ölçütü:
 - Porto benzeri bir temayı CSS/JS + HTML section parçalarıyla sisteme alabilmek
 - bir firmaya uyarlayabilmek
 - içerik/görsel/sıralama/custom css ile teslim edebilmek
+- admin panelde `Header / Body / Footer` altında satır, kolon ve block mantığıyla düzenleme yapabilmek
 
 ## Faz 2: Structured Component Mode
 
@@ -98,6 +102,12 @@ Kapsam:
 - React tabanlı section renderer
 - hero/testimonials/blog-list/cta gibi çekirdek section'ların component sürümleri
 - frontend Sentry entegrasyonu
+
+Not:
+
+- Structured mode yeni bir ikinci editör yaratmayacak
+- Faz 1'de gelen region tabanlı builder korunacak
+- yalnızca bazı block'lar `render_mode=component` ile render edilecek
 
 Başarı ölçütü:
 
@@ -161,10 +171,11 @@ Kod geliştirme sırası şu olmalı:
 1. Next.js temel app
 2. Laravel public API
 3. Basic HTML Section Mode
-4. Theme packs
-5. Structured component renderer
-6. Template/site instance sistemi
-7. AI hızlandırıcı katman
+4. Region / row / column / block editörü
+5. Theme packs
+6. Structured component renderer
+7. Template/site instance sistemi
+8. AI hızlandırıcı katman
 
 ## Bu Roadmap Nasıl Kullanılacak
 

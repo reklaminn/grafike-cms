@@ -8,6 +8,7 @@ Bu proje şu yaklaşımla başlayacak:
 - Next.js frontend
 - önce `Basic HTML Section Mode`
 - sonra `Structured Component Mode`
+- editör modeli olarak `Header / Body / Footer + Row / Column / Block`
 
 Bu karar bilinçli olarak seçildi.
 
@@ -39,6 +40,22 @@ Section varlığı şunları taşır:
 - active/passive
 - page-level overrides
 
+Bu ilk tanım artık düz liste mantığında kalmayacak.
+
+Temel editör yaklaşımı:
+
+- `Header`
+- `Body`
+- `Footer`
+
+Her bölgede:
+
+- satır
+- kolon
+- block
+
+Yani kullanıcı deneyimi eski builder'a benzeyecek, ama veri modeli yeni sistemde kalacak.
+
 Yani:
 
 - Porto / Woodmart gibi temalar hızlı taşınabilir
@@ -57,6 +74,15 @@ Sebep:
 - önce gerçek kullanım verisi görmek
 - hangi section'lar gerçekten tekrar kullanılıyor anlamak
 - gereksiz abstraction yazmamak
+
+Bu aşamada editör sıfırdan değişmeyecek.
+
+Aynı `Header / Body / Footer + Row / Column / Block` editörü korunacak.
+
+Sadece block render biçimi evrilecek:
+
+- Faz 1: `render_mode=html`
+- Faz 2: `render_mode=component`
 
 ## Nihai Hedef
 
@@ -96,3 +122,4 @@ Ama şu iki karar referans noktası olarak korunur:
 
 1. frontend Next.js olacak
 2. önce Basic HTML Section Mode yapılacak
+3. Structured Component Mode, eski `layout_json` builder üzerine değil; yeni region tabanlı frontend editörü üzerine kurulacak

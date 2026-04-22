@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PageRequest;
 use App\Models\Language;
 use App\Models\Page;
+use App\Models\SectionTemplate;
 use App\Models\SeoEntry;
+use App\Support\FrontendSections;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -50,8 +52,13 @@ class PageController extends Controller
         $parentPages = Page::whereNull('parent_id')
             ->orderBy('title')
             ->get(['id', 'title', 'language_id']);
+        $availableFrontendSectionTemplates = SectionTemplate::query()
+            ->active()
+            ->orderBy('name')
+            ->get()
+            ->values();
 
-        return view('admin.pages.create', compact('languages', 'parentPages'));
+        return view('admin.pages.create', compact('languages', 'parentPages', 'availableFrontendSectionTemplates'));
     }
 
     public function store(PageRequest $request)
@@ -75,6 +82,10 @@ class PageController extends Controller
             $data['layout_json'] = json_decode($data['layout_json'], true);
         }
 
+        if (!empty($data['sections_json'])) {
+            $data['sections_json'] = json_decode($data['sections_json'], true);
+        }
+
         $page = Page::create($data);
 
         // Handle cover image
@@ -93,7 +104,7 @@ class PageController extends Controller
 
     public function edit(Page $page)
     {
-        $page->load(['language', 'parent', 'seo', 'children', 'media']);
+        $page->load(['language', 'parent', 'seo', 'children', 'media', 'site.theme']);
 
         $languages = Language::where('is_active', true)->get();
         $parentPages = Page::where('id', '!=', $page->id)
@@ -101,7 +112,37 @@ class PageController extends Controller
             ->orderBy('title')
             ->get(['id', 'title', 'language_id']);
 
-        return view('admin.pages.edit', compact('page', 'languages', 'parentPages'));
+        $sectionTemplateIds = FrontendSections::collectTemplateIds($page->sections_json);
+
+        $frontendSectionTemplates = SectionTemplate::query()
+            ->whereIn('id', $sectionTemplateIds)
+            ->get()
+            ->keyBy('id');
+
+        $availableFrontendSectionTemplates = SectionTemplate::query()
+            ->when($page->site?->theme_id, fn ($query, $themeId) => $query->where('theme_id', $themeId))
+            ->active()
+            ->orderBy('name')
+            ->get()
+            ->values();
+
+        $siteArticles = $page->site
+            ? $page->site->articles()->latest('published_at')->limit(10)->get()
+            : collect();
+
+        $frontendEditorSections = FrontendSections::flattenBlocks($page->sections_json);
+        $frontendRegions = FrontendSections::normalize($page->sections_json);
+
+        return view('admin.pages.edit', compact(
+            'page',
+            'languages',
+            'parentPages',
+            'frontendSectionTemplates',
+            'availableFrontendSectionTemplates',
+            'siteArticles',
+            'frontendEditorSections',
+            'frontendRegions'
+        ));
     }
 
     public function update(PageRequest $request, Page $page)
@@ -123,6 +164,10 @@ class PageController extends Controller
         // Parse layout_json
         if (!empty($data['layout_json'])) {
             $data['layout_json'] = json_decode($data['layout_json'], true);
+        }
+
+        if (!empty($data['sections_json'])) {
+            $data['sections_json'] = json_decode($data['sections_json'], true);
         }
 
         $page->update($data);

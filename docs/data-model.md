@@ -7,6 +7,7 @@ Amaç:
 - veriyi hangi tablolarla tutacağımızı belirlemek
 - hangi şey reusable asset, hangi şey site instance olduğunu ayırmak
 - Basic HTML Section Mode ve Structured Component Mode'un aynı model üstünde yaşayabilmesini sağlamak
+- eski `layout_json` builder'a paralel ikinci bir kalıcı editör yaratmamak
 
 ## Çekirdek Kavramlar
 
@@ -193,9 +194,107 @@ Bu tipler ileride:
 - section içinde referans verilebilir
 - farklı sayfalarda tekrar kullanılabilir
 
-## Basic HTML Section Mode Veri Yapısı
+## Region Tabanlı Frontend Veri Yapısı
 
-Page üstünde saklanan section instance örneği:
+Yeni frontend editörü düz section listesi yerine region tabanlı çalışmalıdır.
+
+Editör dili:
+
+- `Header`
+- `Body`
+- `Footer`
+
+Her region içinde:
+
+- satır
+- kolon
+- block
+
+Bu, eski builder hissini korur ama yeni Next.js mimarisine bağlı kalır.
+
+Önerilen ana yapı:
+
+```json
+{
+  "version": 2,
+  "regions": {
+    "header": [],
+    "body": [],
+    "footer": []
+  }
+}
+```
+
+Bir region içindeki satır örneği:
+
+```json
+{
+  "id": "row_body_1",
+  "type": "row",
+  "is_active": true,
+  "columns": [
+    {
+      "id": "col_body_1",
+      "width": 12,
+      "is_active": true,
+      "blocks": [
+        {
+          "id": "block_hero_1",
+          "type": "hero",
+          "variation": "porto-split",
+          "render_mode": "html",
+          "section_template_id": 12,
+          "component_key": null,
+          "is_active": true,
+          "sort_order": 1,
+          "content": {
+            "title": "Modern Furniture Collections",
+            "subtitle": "Reusable homepage hero content",
+            "button_text": "Discover Collection",
+            "button_url": "/collections"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Basic HTML Section Mode
+
+Faz 1'de block'lar çoğunlukla:
+
+- `render_mode=html`
+- `html_template`
+- `schema_json`
+
+üzerinden çalışır.
+
+Yani Porto / Woodmart section'ları block olarak editöre eklenir, ama render backend-driven HTML olur.
+
+### Structured Component Mode
+
+Faz 2'de aynı block yapısı korunur.
+
+Sadece bazı block'lar:
+
+- `render_mode=component`
+- `component_key=testimonials.grid`
+
+gibi değerlerle React/Next component tarafından render edilir.
+
+Yani Structured mode yeni bir veri modeli getirmez; aynı region/row/column/block modelinin ikinci render katmanıdır.
+
+## Geçiş (Migration) Stratejisi
+
+Mevcut düz `sections_json` yapısı boşa gitmemelidir.
+
+Geçiş mantığı:
+
+- her mevcut section varsayılan olarak `body` region'ına alınır
+- her section için tek satır + tek kolon oluşturulur
+
+Örnek:
 
 ```json
 [
@@ -203,44 +302,50 @@ Page üstünde saklanan section instance örneği:
     "id": "sec_hero_1",
     "type": "hero",
     "variation": "porto-split",
-    "render_mode": "html",
-    "section_template_id": 12,
-    "is_active": true,
-    "sort_order": 1,
-    "content": {
-      "title": "Modern Furniture Collections",
-      "subtitle": "Reusable homepage hero content",
-      "button_text": "Discover Collection",
-      "button_url": "/collections"
-    },
-    "custom_css": "",
-    "custom_js": ""
+    "render_mode": "html"
   }
 ]
 ```
 
-## Structured Component Mode Veri Yapısı
-
-Structured mode da aynı gövdeyi kullanır, sadece render değişir:
+şu yapıya normalize edilir:
 
 ```json
-[
-  {
-    "id": "sec_testimonials_1",
-    "type": "testimonials",
-    "variation": "grid",
-    "render_mode": "component",
-    "component_key": "testimonials.grid",
-    "is_active": true,
-    "sort_order": 3,
-    "content": {
-      "title": "Customer Feedback",
-      "items_source": "testimonials_collection",
-      "items_limit": 6
-    }
+{
+  "version": 2,
+  "regions": {
+    "header": [],
+    "body": [
+      {
+        "id": "row_body_1",
+        "type": "row",
+        "is_active": true,
+        "columns": [
+          {
+            "id": "col_body_1",
+            "width": 12,
+            "is_active": true,
+            "blocks": [
+              {
+                "id": "sec_hero_1",
+                "type": "hero",
+                "variation": "porto-split",
+                "render_mode": "html"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "footer": []
   }
-]
+}
 ```
+
+Bu sayede:
+
+- mevcut demo veri çöpe gitmez
+- admin editörü yeni şemaya geçebilir
+- renderer uyumluluk katmanıyla iki sürümü de okuyabilir
 
 ## Temel Karar
 
@@ -252,3 +357,8 @@ Yani:
 - Structured Component Mode için ayrı ikinci veri modeli kurulmamlı
 
 Tek model, iki render modu yaklaşımı kullanılmalı.
+
+Ek karar:
+
+- eski `layout_json` builder sadece legacy Blade frontend desteği olarak kalır
+- yeni ürün yönü `sections_json` tabanlı region/row/column/block editörüdür

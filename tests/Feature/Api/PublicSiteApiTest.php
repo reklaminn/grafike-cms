@@ -42,6 +42,9 @@ class PublicSiteApiTest extends TestCase
             ->assertJsonPath('data.page.template', 'porto-furniture-home')
             ->assertJsonPath('data.page.sections.0.type', 'hero')
             ->assertJsonPath('data.page.sections.0.render_mode', 'html')
+            ->assertJsonPath('data.page.region_version', 2)
+            ->assertJsonPath('data.page.regions.body.0.columns.0.blocks.0.type', 'hero')
+            ->assertJsonPath('data.page.regions.body.0.columns.0.blocks.0.render_mode', 'html')
             ->assertJsonPath('data.page.sections.0.template_name', 'Hero / Porto Split')
             ->assertJsonPath('data.theme.slug', 'porto-furniture');
 

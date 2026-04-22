@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api;
 
 use App\Models\Page;
 use App\Models\SectionTemplate;
+use App\Support\FrontendSections;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,8 +14,9 @@ class PageResource extends JsonResource
     {
         /** @var Page $page */
         $page = $this->resource;
-        $sections = $page->sections_json ?: $page->layout_json ?: [];
-        $sections = $this->enrichSections($sections);
+        $rawSections = $page->sections_json ?: $page->layout_json ?: [];
+        $sections = $this->enrichSections(FrontendSections::flattenBlocks($rawSections));
+        $regionLayout = $this->enrichRegionBlocks($rawSections);
         $themeSlug = $page->site?->theme?->slug ?: 'porto-furniture';
 
         return [
@@ -27,6 +29,8 @@ class PageResource extends JsonResource
                 'template' => $page->template ?: $page->page_template,
                 'layout' => $page->layout_json ?? [],
                 'sections' => $sections,
+                'region_version' => $regionLayout['version'] ?? 2,
+                'regions' => $regionLayout['regions'] ?? [],
                 'language' => $page->language?->code,
             ],
             'seo' => [
@@ -62,10 +66,7 @@ class PageResource extends JsonResource
 
     protected function enrichSections(array $sections): array
     {
-        $templateIds = collect($sections)
-            ->pluck('section_template_id')
-            ->filter()
-            ->values();
+        $templateIds = FrontendSections::collectTemplateIds($sections);
 
         if ($templateIds->isEmpty()) {
             return $sections;
@@ -92,5 +93,34 @@ class PageResource extends JsonResource
                 return $section;
             })
             ->all();
+    }
+
+    protected function enrichRegionBlocks(array $sections): array
+    {
+        $templateIds = FrontendSections::collectTemplateIds($sections);
+
+        if ($templateIds->isEmpty()) {
+            return FrontendSections::normalize($sections);
+        }
+
+        $templates = SectionTemplate::query()
+            ->whereIn('id', $templateIds)
+            ->get()
+            ->keyBy('id');
+
+        return FrontendSections::mapBlocks($sections, function (array $block) use ($templates) {
+            $template = $templates->get($block['section_template_id'] ?? null);
+
+            if (! $template) {
+                return $block;
+            }
+
+            $block['template_name'] = $template->name;
+            $block['html_template'] = $template->html_template;
+            $block['component_key'] = $template->component_key;
+            $block['schema'] = $template->schema_json ?? [];
+
+            return $block;
+        });
     }
 }
