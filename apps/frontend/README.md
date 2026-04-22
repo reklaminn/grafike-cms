@@ -1,28 +1,34 @@
 # Frontend App
 
-Bu klasör hedefte Next.js tabanlı public frontend uygulamasını barındıracak.
+Bu klasör Faz 1 itibarıyla gerçekten çalışan bir Next.js public frontend iskeleti içerir.
 
-Sorumluluklar:
+Şu an çalışan parçalar:
 
 - slug bazlı route çözümü
-- theme pack yükleme
-- section render
-- metadata / SEO
-- cache / ISR
-- görsel optimizasyonu
+- Laravel public API client
+- site/theme/settings/menu çekme
+- backend-driven Basic HTML Section Mode render
+- theme token'larını CSS variable olarak uygulama
 
-Render mantığı:
+Ana bağımlılık:
 
-- Laravel API'den sayfa verisi alınır
-- `theme + tokens + sections` çözülür
-- section renderer doğru React componentlerini çağırır
+- `CMS_API_URL`
 
-Örnek:
+Örnek local env:
 
-```ts
-renderSection({
-  type: "hero",
-  variation: "porto-split",
-  content: { ... }
-})
+```env
+CMS_API_URL=http://127.0.0.1:8000
 ```
+
+Çalıştırma:
+
+```bash
+cd /Volumes/Dev/iraspa-cms/apps/frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Detaylı tam akış için:
+
+- [docs/local-fullstack-runbook.md](../docs/local-fullstack-runbook.md)

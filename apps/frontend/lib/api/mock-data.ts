@@ -102,6 +102,23 @@ const pages: Record<string, PagePayload> = {
             title: "Why customers choose this brand",
             description: "This homepage is now coming from the Laravel public API instead of static mock-only wiring."
           }
+        },
+        {
+          id: "articles_1",
+          type: "article-list",
+          variation: "porto-cards",
+          render_mode: "html",
+          section_template_id: 3,
+          template_name: "Article List / Porto Cards",
+          html_template:
+            '<section class="section-card" style="padding:32px;"><div class="container"><h2>{{title}}</h2><p>{{description}}</p><div class="article-grid">{{{items_html}}}</div></div></section>',
+          is_active: true,
+          content: {
+            title: "Yazi Modulu Ornegi",
+            description: "Bu alan blog yazilarindan uretilen kartlari gosterir.",
+            items_html:
+              '<article style="padding:20px;border:1px solid var(--border-soft);border-radius:var(--radius-card);display:grid;gap:12px;"><h3 style="margin:0;font-size:20px;">Reusable theme pack mantigi</h3><p style="margin:0;color:var(--text-soft);line-height:1.7;">Ayni template farkli marka tokenlari ile tekrar kullanilabilir.</p><a href="/reusable-theme-pack-mantigi" style="font-weight:700;color:var(--color-primary);">Yaziyi oku</a></article>'
+          }
         }
       ]
     },
@@ -109,6 +126,40 @@ const pages: Record<string, PagePayload> = {
       title: "Home",
       description: "Mock homepage payload",
       canonical: "http://localhost:3000/home"
+    },
+    theme: {
+      slug: "porto-furniture"
+    }
+  },
+  blog: {
+    page: {
+      id: 2,
+      title: "Blog",
+      slug: "blog",
+      template: "blog-index",
+      sections: [
+        {
+          id: "blog_intro",
+          type: "rich-text",
+          variation: "porto-content",
+          render_mode: "html",
+          section_template_id: 4,
+          template_name: "Rich Text / Porto Content",
+          html_template:
+            '<section class="section-card" style="padding:32px;"><div class="container"><h2>{{title}}</h2><div class="content">{{{body_html}}}</div></div></section>',
+          is_active: true,
+          content: {
+            title: "Blog",
+            body_html:
+              "<p>Bu sayfa demo yazilarini listeler. Faz 1'de liste kartlari da yine HTML section template ile geliyor.</p>"
+          }
+        }
+      ]
+    },
+    seo: {
+      title: "Blog",
+      description: "Mock blog payload",
+      canonical: "http://localhost:3000/blog"
     },
     theme: {
       slug: "porto-furniture"

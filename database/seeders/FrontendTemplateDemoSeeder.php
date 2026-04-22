@@ -132,6 +132,59 @@ HTML,
             ]
         );
 
+        $richTextSectionTemplate = SectionTemplate::updateOrCreate(
+            ['theme_id' => $theme->id, 'type' => 'rich-text', 'variation' => 'porto-content'],
+            [
+                'name' => 'Rich Text / Porto Content',
+                'render_mode' => 'html',
+                'html_template' => <<<'HTML'
+<section class="section-card" style="padding:32px;">
+  <div class="container">
+    <h2>{{title}}</h2>
+    <div class="content">{{{body_html}}}</div>
+  </div>
+</section>
+HTML,
+                'schema_json' => [
+                    'title' => ['type' => 'text'],
+                    'body_html' => ['type' => 'textarea'],
+                ],
+                'default_content_json' => [
+                    'title' => 'Bu sistem nasıl çalışıyor?',
+                    'body_html' => '<p>Theme, site, page template ve section template katmanları birlikte çalışır.</p>',
+                ],
+                'is_active' => true,
+            ]
+        );
+
+        $articleListSectionTemplate = SectionTemplate::updateOrCreate(
+            ['theme_id' => $theme->id, 'type' => 'article-list', 'variation' => 'porto-cards'],
+            [
+                'name' => 'Article List / Porto Cards',
+                'render_mode' => 'html',
+                'html_template' => <<<'HTML'
+<section class="section-card" style="padding:32px;">
+  <div class="container">
+    <h2>{{title}}</h2>
+    <p>{{description}}</p>
+    <div class="article-grid">{{{items_html}}}</div>
+  </div>
+</section>
+HTML,
+                'schema_json' => [
+                    'title' => ['type' => 'text'],
+                    'description' => ['type' => 'textarea'],
+                    'items_html' => ['type' => 'textarea'],
+                ],
+                'default_content_json' => [
+                    'title' => 'Son Yazılar',
+                    'description' => 'Seed edilen yazılar bu modül içinde kart olarak gösterilir.',
+                    'items_html' => '',
+                ],
+                'is_active' => true,
+            ]
+        );
+
         $pageTemplate = PageTemplate::updateOrCreate(
             ['slug' => 'porto-furniture-home'],
             [
@@ -253,16 +306,43 @@ HTML,
                         ],
                     ],
                     [
+                        'id' => 'intro_home',
+                        'type' => 'rich-text',
+                        'variation' => 'porto-content',
+                        'render_mode' => 'html',
+                        'section_template_id' => $richTextSectionTemplate->id,
+                        'is_active' => true,
+                        'sort_order' => 2,
+                        'content' => [
+                            'title' => 'Demo yapının mantığı',
+                            'body_html' => '<p><strong>Theme</strong> görsel aileyi, <strong>Site</strong> müşteri örneğini, <strong>Section Template</strong> ise tekrar kullanılabilir HTML parçalarını temsil eder.</p><p>Aşağıdaki yazı kartları da yine bir section template üzerinden geliyor.</p>',
+                        ],
+                    ],
+                    [
                         'id' => 'features_home',
                         'type' => 'features',
                         'variation' => 'porto-icons',
                         'render_mode' => 'html',
                         'section_template_id' => $featureSectionTemplate->id,
                         'is_active' => true,
-                        'sort_order' => 2,
+                        'sort_order' => 3,
                         'content' => [
                             'title' => 'Basic HTML Section Mode',
                             'description' => 'Hazir HTML theme sectionlarini CMS verisiyle siralayip farkli firmalarda tekrar kullanabilirsiniz.',
+                        ],
+                    ],
+                    [
+                        'id' => 'articles_home',
+                        'type' => 'article-list',
+                        'variation' => 'porto-cards',
+                        'render_mode' => 'html',
+                        'section_template_id' => $articleListSectionTemplate->id,
+                        'is_active' => true,
+                        'sort_order' => 4,
+                        'content' => [
+                            'title' => 'Yazi Modulu Ornegi',
+                            'description' => 'Bu alan blog yazilarindan uretilen kartlari gosterir. Section template sadece layoutu tarif eder.',
+                            'items_html' => '',
                         ],
                     ],
                 ],
@@ -292,7 +372,35 @@ HTML,
                 'sort_order' => 2,
                 'template' => 'blog-index',
                 'frontend_variant' => 'cards_3col',
-                'sections_json' => [],
+                'sections_json' => [
+                    [
+                        'id' => 'blog_intro',
+                        'type' => 'rich-text',
+                        'variation' => 'porto-content',
+                        'render_mode' => 'html',
+                        'section_template_id' => $richTextSectionTemplate->id,
+                        'is_active' => true,
+                        'sort_order' => 1,
+                        'content' => [
+                            'title' => 'Blog',
+                            'body_html' => '<p>Bu sayfa demo yazilarini listeler. Faz 1\'de liste kartlari de yine HTML section template ile geliyor.</p>',
+                        ],
+                    ],
+                    [
+                        'id' => 'blog_articles',
+                        'type' => 'article-list',
+                        'variation' => 'porto-cards',
+                        'render_mode' => 'html',
+                        'section_template_id' => $articleListSectionTemplate->id,
+                        'is_active' => true,
+                        'sort_order' => 2,
+                        'content' => [
+                            'title' => 'Tum Yazilar',
+                            'description' => 'Demo blog kartlari',
+                            'items_html' => '',
+                        ],
+                    ],
+                ],
                 'layout_json' => [],
                 'show_breadcrumb' => true,
                 'view_count' => 0,
@@ -307,6 +415,8 @@ HTML,
                 'meta_description' => 'Demo blog listesi',
             ]
         );
+
+        $seededArticles = [];
 
         foreach ([
             [
@@ -343,7 +453,23 @@ HTML,
                     'meta_description' => $article->excerpt,
                 ]
             );
+
+            $seededArticles[] = [
+                'title' => $article->title,
+                'slug' => $article->slug,
+                'excerpt' => $article->excerpt,
+            ];
         }
+
+        $blogCardsHtml = $this->renderArticleCardsHtml($seededArticles);
+
+        $homepageSections = $homepage->sections_json ?? [];
+        $homepageSections[3]['content']['items_html'] = $blogCardsHtml;
+        $homepage->update(['sections_json' => $homepageSections]);
+
+        $blogSections = $blogPage->sections_json ?? [];
+        $blogSections[1]['content']['items_html'] = $blogCardsHtml;
+        $blogPage->update(['sections_json' => $blogSections]);
 
         $menu = Menu::updateOrCreate(
             ['site_id' => $site->id, 'slug' => 'header-tr'],
@@ -381,5 +507,24 @@ HTML,
             $this->command->info("✓ Site: {$site->name} ({$site->domain})");
             $this->command->info("✓ Homepage ID: {$homepage->id}");
         }
+    }
+
+    protected function renderArticleCardsHtml(array $articles): string
+    {
+        return collect($articles)
+            ->map(function (array $article) {
+                $title = e($article['title']);
+                $slug = e($article['slug']);
+                $excerpt = e($article['excerpt']);
+
+                return <<<HTML
+<article style="padding:20px;border:1px solid var(--border-soft);border-radius:var(--radius-card);display:grid;gap:12px;">
+  <h3 style="margin:0;font-size:20px;">{$title}</h3>
+  <p style="margin:0;color:var(--text-soft);line-height:1.7;">{$excerpt}</p>
+  <a href="/{$slug}" style="font-weight:700;color:var(--color-primary);">Yaziyi oku</a>
+</article>
+HTML;
+            })
+            ->implode("\n");
     }
 }
