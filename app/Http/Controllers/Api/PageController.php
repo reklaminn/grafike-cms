@@ -19,7 +19,7 @@ class PageController extends Controller
                 ->where('legacy_id', $homepageId)
                 ->orWhere('id', $homepageId)
                 ->published()
-                ->with(['seo', 'language', 'parent'])
+                ->with(['seo', 'language', 'parent', 'site.theme'])
                 ->first();
 
             abort_if(! $page, 404);
@@ -43,7 +43,7 @@ class PageController extends Controller
         abort_if(! $entity instanceof Page, 404);
         abort_if($entity->status !== 'published', 404);
 
-        $entity->loadMissing(['seo', 'language', 'parent']);
+        $entity->loadMissing(['seo', 'language', 'parent', 'site.theme']);
 
         return PageResource::make($entity);
     }

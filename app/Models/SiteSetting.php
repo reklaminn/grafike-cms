@@ -10,22 +10,38 @@ class SiteSetting extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['key', 'value', 'group', 'type'];
+    protected $fillable = ['site_id', 'key', 'value', 'group', 'type'];
 
-    public static function get(string $key, $default = null): mixed
+    public function site()
     {
-        return Cache::remember("setting_{$key}", 600, function () use ($key, $default) {
-            $setting = static::where('key', $key)->first();
+        return $this->belongsTo(Site::class);
+    }
+
+    public static function get(string $key, $default = null, ?int $siteId = null): mixed
+    {
+        $cacheKey = "setting_{$siteId}_{$key}";
+
+        return Cache::remember($cacheKey, 600, function () use ($key, $default, $siteId) {
+            if ($siteId) {
+                $siteSetting = static::where('key', $key)->where('site_id', $siteId)->first();
+                if ($siteSetting) {
+                    return $siteSetting->value;
+                }
+            }
+
+            $setting = static::where('key', $key)->whereNull('site_id')->first();
+
             return $setting ? $setting->value : $default;
         });
     }
 
-    public static function set(string $key, $value, string $group = 'general'): void
+    public static function set(string $key, $value, string $group = 'general', ?int $siteId = null): void
     {
         static::updateOrCreate(
-            ['key' => $key],
+            ['key' => $key, 'site_id' => $siteId],
             ['value' => $value, 'group' => $group]
         );
-        Cache::forget("setting_{$key}");
+
+        Cache::forget("setting_{$siteId}_{$key}");
     }
 }
