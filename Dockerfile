@@ -48,12 +48,16 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 
 COPY composer.json composer.lock ./
-RUN php -m && composer install -vvv \
+RUN composer install \
     --no-dev \
     --no-interaction \
     --prefer-dist \
     --optimize-autoloader \
-    --no-scripts
+    --no-scripts \
+    --ignore-platform-req=ext-gd \
+    --ignore-platform-req=ext-exif \
+    --ignore-platform-req=ext-zip
+
 
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
