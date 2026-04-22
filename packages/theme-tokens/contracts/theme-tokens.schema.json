@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Theme Tokens",
+  "type": "object",
+  "properties": {
+    "color_primary": { "type": "string" },
+    "color_secondary": { "type": "string" },
+    "color_accent": { "type": "string" },
+    "radius_card": { "type": "string" },
+    "radius_button": { "type": "string" },
+    "container_width": { "type": "string" }
+  },
+  "additionalProperties": true
+}
