@@ -1,0 +1,28 @@
+{
+  "name": "Porto Furniture",
+  "slug": "porto-furniture",
+  "engine": "next",
+  "tokens": {
+    "color_primary": "#7c5a3a",
+    "color_secondary": "#f3ede6",
+    "color_accent": "#111827",
+    "heading_scale": "lg",
+    "body_scale": "md",
+    "radius_card": "20px",
+    "radius_button": "999px",
+    "shadow_style": "soft",
+    "container_width": "1320px"
+  },
+  "header_variant": "porto-furniture-header",
+  "footer_variant": "porto-furniture-footer",
+  "assets": {
+    "css": [
+      "/themes/porto-furniture/css/vendor.css",
+      "/themes/porto-furniture/css/theme.css"
+    ],
+    "js": [
+      "/themes/porto-furniture/js/vendor.js",
+      "/themes/porto-furniture/js/theme.js"
+    ]
+  }
+}
