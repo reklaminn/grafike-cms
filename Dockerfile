@@ -48,7 +48,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 
 COPY composer.json composer.lock ./
-RUN php -v && php -m && composer install -vvv \
+RUN php -m && composer install -vvv \
     --no-dev \
     --no-interaction \
     --prefer-dist \
