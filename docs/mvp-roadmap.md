@@ -1,38 +1,182 @@
 # MVP Roadmap
 
-## Hedef
+## Karar Özeti
 
-Mevcut Laravel CMS'i bir anda taşımadan, yeni ürün yönünü parça parça inşa etmek.
+Bu proje için kesin başlangıç kararı:
 
-## Sprint 1
+- backend: Laravel CMS
+- frontend: Next.js
+- ilk teslim modeli: `Basic HTML Section Mode`
+- ikinci ana evrim: `Structured Component Mode`
+- uzun vadeli hedef: hibrit sistem
 
-- Laravel tarafında public API kontratı
-- `site`, `settings`, `menus`, `pages`, `articles` endpoint tanımı
+Bu kararın sebebi:
+
+- ajansın mevcut iş yapışını bozmamak
+- Porto / Woodmart / benzeri HTML tema akışını ürünleştirmek
+- ama bunu doğrudan Next.js tabanlı yeni mimariye oturtmak
+
+## Faz 0: Temel Yön ve Hazırlık
+
+Hedef:
+
+- repo yapısını belirlemek
+- veri modelini netleştirmek
+- teknik kararları dondurmak
+
+Çıktılar:
+
+- mimari dokümanı
+- başlangıç planı
+- örnek theme pack
+- örnek site template
+- monorepo klasör yapısı
+
+## Faz 1: Basic HTML Section Mode
+
+Hedef:
+
+- mevcut ajans akışını ürüne dönüştürmek
+- HTML template section mantığını Next.js üzerinde çalıştırmak
+
+Kapsam:
+
+- Laravel public API kontratı
 - Next.js app skeleton
-- theme token sözleşmesi
-
-## Sprint 2
-
-- section renderer
-- hero / text / testimonials / cta / blog-list / faq sectionları
-- `porto-furniture` örnek preset
-- örnek homepage template
-
-## Sprint 3
-
-- site instance modeli
-- theme seçimi
-- panelden token düzenleme
+- theme pack sistemi
+- tema CSS/JS asset tanımı
+- HTML section snippet modeli
+- sayfa bazlı section sıralama
+- aktif/pasif section kontrolü
+- sayfa bazlı custom css/js
 - global custom css/js
 
-## Sprint 4
+İlk endpoint seti:
 
-- template'i kopyalayarak yeni site oluşturma
-- template snapshot mantığı
-- ajans / müşteri yetki ayrımı
+- `GET /api/site`
+- `GET /api/settings`
+- `GET /api/menus/{location}`
+- `GET /api/pages/{slug}`
+- `GET /api/articles/{slug}`
+- `GET /api/articles`
 
-## Sprint 5
+İlk tema örneği:
 
-- AI ile referans ekran görüntüsünden section çıkarma
-- AI ile theme preset önerme
-- AI ile reusable template üretimi
+- `porto-furniture`
+
+İlk section seti:
+
+- hero
+- text-block
+- testimonials
+- faq
+- cta-banner
+- blog-list
+- gallery
+- video
+- spacer
+
+Başarı ölçütü:
+
+- Porto benzeri bir temayı CSS/JS + HTML section parçalarıyla sisteme alabilmek
+- bir firmaya uyarlayabilmek
+- içerik/görsel/sıralama/custom css ile teslim edebilmek
+
+## Faz 2: Structured Component Mode
+
+Hedef:
+
+- en çok kullanılan section'ları HTML snippet'ten çıkarıp reusable Next.js component'e çevirmek
+
+Kapsam:
+
+- section registry
+- section schema standardı
+- variation sistemi
+- theme token sistemi
+- React tabanlı section renderer
+- hero/testimonials/blog-list/cta gibi çekirdek section'ların component sürümleri
+
+Başarı ölçütü:
+
+- aynı page içinde hem HTML section hem component section kullanılabilmesi
+- en sık kullanılan blokların structured render'a taşınması
+
+## Faz 3: Template ve Site Instance Sistemi
+
+Hedef:
+
+- oluşturulan siteleri tekrar kullanılabilir template varlığına dönüştürmek
+
+Kapsam:
+
+- site instance modeli
+- siteyi template olarak kaydetme
+- template'ten yeni site oluşturma
+- theme preset kopyalama
+- ajans/müşteri yetki sınırları
+
+Başarı ölçütü:
+
+- bir template'in birden fazla firmada renk/section/varyasyon farkıyla kullanılabilmesi
+
+## Faz 4: AI-Assisted Template Creation
+
+Hedef:
+
+- referans ekran görüntülerinden reusable theme/section/template üretimini hızlandırmak
+
+Kapsam:
+
+- referans görsel analizi
+- section extraction
+- theme preset önerisi
+- variation önerisi
+- template taslağı üretimi
+
+Başarı ölçütü:
+
+- Porto / Woodmart / özel referanslardan daha hızlı template üretmek
+
+## Faz 5: Olgunlaşma
+
+Hedef:
+
+- üretim güvenliği ve panel deneyimini olgunlaştırmak
+
+Kapsam:
+
+- preview/versioning
+- reusable block marketplace
+- theme diff / override takibi
+- daha net müşteri/ajans erişim modeli
+- taşınabilir template export/import
+
+## Teknik Sıralama
+
+Kod geliştirme sırası şu olmalı:
+
+1. Next.js temel app
+2. Laravel public API
+3. Basic HTML Section Mode
+4. Theme packs
+5. Structured component renderer
+6. Template/site instance sistemi
+7. AI hızlandırıcı katman
+
+## Bu Roadmap Nasıl Kullanılacak
+
+Bu dosya sabit bir sözleşme değildir.
+
+Ama şu kararı sabit kabul eder:
+
+- ilk ürün teslim yaklaşımı `Basic HTML Section Mode`
+- hedef platform `Next.js + Laravel`
+
+İleride fazlar:
+
+- birleştirilebilir
+- bölünebilir
+- yeniden sıralanabilir
+
+ancak temel başlangıç yönü korunmalıdır.
