@@ -1,0 +1,69 @@
+{
+  "name": "Porto Furniture Home",
+  "slug": "porto-furniture-home",
+  "theme": "porto-furniture",
+  "page_type": "home",
+  "sections": [
+    {
+      "type": "hero",
+      "variation": "porto-split",
+      "is_active": true,
+      "content": {
+        "title": "Modern Furniture Collections",
+        "subtitle": "A reusable hero section for furniture-focused brand sites.",
+        "button_text": "Discover Collection",
+        "button_url": "/collections"
+      }
+    },
+    {
+      "type": "feature-cards",
+      "variation": "porto-icons-3up",
+      "is_active": true,
+      "content": {
+        "title": "Why customers choose this brand",
+        "items": [
+          {
+            "title": "Premium Materials",
+            "body": "Solid materials and modern finishes."
+          },
+          {
+            "title": "Fast Delivery",
+            "body": "Reliable lead times for selected collections."
+          },
+          {
+            "title": "Design Support",
+            "body": "Consultation for project-based purchases."
+          }
+        ]
+      }
+    },
+    {
+      "type": "testimonials",
+      "variation": "porto-grid",
+      "is_active": true,
+      "content": {
+        "title": "Customer Feedback"
+      }
+    },
+    {
+      "type": "blog-list",
+      "variation": "cards-3col",
+      "is_active": true,
+      "content": {
+        "title": "Latest Journal",
+        "limit": 3
+      }
+    },
+    {
+      "type": "cta-banner",
+      "variation": "porto-dark",
+      "is_active": true,
+      "content": {
+        "title": "Need a custom furniture quote?",
+        "body": "Use this CTA as a reusable conversion block across similar sites.",
+        "button_text": "Request Offer",
+        "button_url": "/contact"
+      }
+    }
+  ]
+}
