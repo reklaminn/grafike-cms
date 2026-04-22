@@ -10,6 +10,7 @@ function escapeHtml(value: string | number | boolean | null | undefined): string
 }
 
 function heroTemplate(section: PageSection): string {
+  const eyebrow = escapeHtml(section.content.eyebrow);
   const title = escapeHtml(section.content.title);
   const subtitle = escapeHtml(section.content.subtitle);
   const buttonText = escapeHtml(section.content.button_text);
@@ -18,7 +19,7 @@ function heroTemplate(section: PageSection): string {
   return `
     <section class="section-card" style="padding:40px;background:linear-gradient(135deg,var(--color-secondary),#fff);">
       <div style="display:grid;gap:18px;">
-        <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-primary);">Porto Inspired Hero</span>
+        <span style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-primary);">${eyebrow || "Porto Inspired Hero"}</span>
         <h1 style="margin:0;font-size:clamp(40px,8vw,72px);line-height:1;font-weight:900;">${title}</h1>
         <p style="margin:0;max-width:720px;color:var(--text-soft);font-size:18px;line-height:1.7;">${subtitle}</p>
         <div><a class="btn-primary" href="${buttonUrl}">${buttonText}</a></div>
@@ -27,29 +28,15 @@ function heroTemplate(section: PageSection): string {
   `;
 }
 
-function featureCardsTemplate(section: PageSection): string {
+function featuresTemplate(section: PageSection): string {
   const title = escapeHtml(section.content.title);
-  const items = [1, 2, 3].map((index) => ({
-    title: escapeHtml(section.content[`item_${index}_title`]),
-    body: escapeHtml(section.content[`item_${index}_body`])
-  }));
+  const description = escapeHtml(section.content.description);
 
   return `
     <section class="section-card" style="padding:32px;">
       <div style="display:grid;gap:24px;">
         <h2 style="margin:0;font-size:32px;font-weight:800;">${title}</h2>
-        <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
-          ${items
-            .map(
-              (item) => `
-                <article style="padding:20px;border:1px solid var(--border-soft);border-radius:var(--radius-card);">
-                  <h3 style="margin:0 0 8px 0;font-size:18px;">${item.title}</h3>
-                  <p style="margin:0;color:var(--text-soft);line-height:1.7;">${item.body}</p>
-                </article>
-              `
-            )
-            .join("")}
-        </div>
+        <p style="margin:0;max-width:840px;color:var(--text-soft);line-height:1.8;">${description}</p>
       </div>
     </section>
   `;
@@ -81,12 +68,8 @@ export function renderBasicHtmlSection(section: PageSection): string {
     return heroTemplate(section);
   }
 
-  if (section.type === "feature-cards") {
-    return featureCardsTemplate(section);
-  }
-
-  if (section.type === "cta-banner") {
-    return ctaBannerTemplate(section);
+  if (section.type === "features" || section.type === "feature-cards") {
+    return featuresTemplate(section);
   }
 
   return `

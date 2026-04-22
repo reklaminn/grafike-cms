@@ -69,7 +69,7 @@ class Site extends Model
 
     public static function resolve(?string $host = null): ?self
     {
-        $host = $host ?: request()->getHost();
+        $host = $host ?: request()->header('X-Site-Host') ?: request()->getHost();
 
         return static::query()
             ->with('theme')

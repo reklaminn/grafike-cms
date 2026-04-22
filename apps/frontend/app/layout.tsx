@@ -1,6 +1,6 @@
 import "./globals.css";
 import { SiteShell } from "@/components/layout/site-shell";
-import { getSitePayload } from "@/lib/api/client";
+import { getMenuPayload, getSettingsPayload, getSitePayload } from "@/lib/api/client";
 import { buildTokenStyle } from "@/lib/theme/tokens";
 
 export const metadata = {
@@ -11,13 +11,23 @@ export const metadata = {
 export default async function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
-  const sitePayload = await getSitePayload();
+  const [sitePayload, headerMenu, settingsPayload] = await Promise.all([
+    getSitePayload(),
+    getMenuPayload("header"),
+    getSettingsPayload()
+  ]);
   const tokenStyle = buildTokenStyle(sitePayload.site.tokens);
 
   return (
     <html lang="tr">
       <body style={tokenStyle}>
-        <SiteShell site={sitePayload.site}>{children}</SiteShell>
+        <SiteShell
+          site={sitePayload.site}
+          headerMenu={headerMenu}
+          settings={settingsPayload.settings}
+        >
+          {children}
+        </SiteShell>
       </body>
     </html>
   );

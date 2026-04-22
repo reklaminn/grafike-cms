@@ -11,7 +11,7 @@ class SettingsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $site = Site::resolve(request()->getHost());
+        $site = Site::resolve(request()->header('X-Site-Host'));
         $siteId = $site?->id;
 
         return response()->json([

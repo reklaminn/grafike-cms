@@ -16,7 +16,7 @@ class PageController extends Controller
     public function show(string $slug)
     {
         if ($slug === 'home') {
-            $site = Site::resolve(request()->getHost());
+            $site = Site::resolve(request()->header('X-Site-Host'));
             $homepageId = SiteSetting::get('cms.homepage_id', config('cms.homepage_id'), $site?->id);
             $page = Page::query()
                 ->when($site, fn ($query) => $query->where('site_id', $site->id))
