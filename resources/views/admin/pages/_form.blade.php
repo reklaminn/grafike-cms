@@ -67,12 +67,14 @@
         </div>
 
         @php
-            $initialFrontendSections = [];
+            $initialFrontendRegions = [];
             if (old('sections_json')) {
                 $decodedOldSections = json_decode(old('sections_json'), true);
-                $initialFrontendSections = is_array($decodedOldSections) ? $decodedOldSections : ($frontendEditorSections ?? $page->sections_json ?? []);
+                $initialFrontendRegions = is_array($decodedOldSections)
+                    ? \App\Support\FrontendSections::normalize($decodedOldSections)
+                    : ($frontendRegions ?? \App\Support\FrontendSections::normalize($page->sections_json ?? []));
             } else {
-                $initialFrontendSections = $frontendEditorSections ?? $page->sections_json ?? [];
+                $initialFrontendRegions = $frontendRegions ?? \App\Support\FrontendSections::normalize($page->sections_json ?? []);
             }
 
             $availableFrontendTemplatesPayload = collect($availableFrontendSectionTemplates ?? [])
@@ -90,12 +92,12 @@
                 ->all();
 
             $frontendSectionEditorPayload = [
-                'initialSections' => $initialFrontendSections,
+                'initialRegions' => $initialFrontendRegions,
                 'availableTemplates' => $availableFrontendTemplatesPayload,
             ];
         @endphp
 
-        @if(isset($page) && ($page->site || !empty($initialFrontendSections)))
+        @if(isset($page) && ($page->site || !empty($initialFrontendRegions)))
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
                  x-data="frontendSectionEditor({{ \Illuminate\Support\Js::from($frontendSectionEditorPayload) }})">
                 <div class="flex items-start justify-between gap-4 mb-4">
@@ -104,7 +106,7 @@
                             <i class="fas fa-layer-group mr-2 text-amber-500"></i>Frontend Section Mode İçeriği
                         </h3>
                         <p class="mt-1 text-xs text-gray-400">
-                            Section’ları form üzerinden düzenleyebilirsin. JSON arka planda tutulur.
+                            Yeni editör `Header / Body / Footer` bölgeleri altında satır, kolon ve block mantığıyla çalışır.
                         </p>
                         <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                             <div class="font-semibold">Bu alan yeni sistem içindir.</div>
@@ -120,109 +122,205 @@
                             </div>
                         @endif
                     </div>
-                    <div class="flex items-center gap-2">
-                        <select x-model="selectedTemplateId"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                            <option value="">Section şablonu seç</option>
-                            @foreach(($availableFrontendSectionTemplates ?? []) as $templateOption)
-                                <option value="{{ $templateOption->id }}">{{ $templateOption->name }}</option>
-                            @endforeach
-                        </select>
-                        <button type="button"
-                                @click="addSection()"
-                                class="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100">
-                            <i class="fas fa-plus"></i>
-                            Section Ekle
-                        </button>
-                    </div>
                 </div>
 
-                <template x-if="sections.length === 0">
-                    <div class="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/40 px-4 py-10 text-center">
-                        <div class="text-sm font-medium text-amber-800">Henüz frontend section eklenmemiş</div>
-                        <p class="mt-1 text-xs text-amber-700">Şablon seçip yeni bir section ekleyebilirsin.</p>
-                    </div>
-                </template>
-
-                <div class="space-y-4">
-                    <template x-for="(section, index) in sections" :key="section._uid">
-                        <div class="rounded-xl border border-gray-200 p-4">
-                            <div class="flex items-start justify-between gap-4">
+                <div class="space-y-6">
+                    <template x-for="region in regionNames" :key="region">
+                        <section class="rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
+                            <div class="flex items-center justify-between gap-4">
                                 <div>
-                                    <div class="text-sm font-semibold text-gray-800" x-text="section.template_name || section.type || 'Section'"></div>
-                                    <div class="mt-1 text-xs text-gray-500">
-                                        <span x-text="'type: ' + (section.type || '-')"></span>
-                                        <span> | </span>
-                                        <span x-text="'variation: ' + (section.variation || '-')"></span>
-                                        <span> | </span>
-                                        <span x-text="'render: ' + (section.render_mode || '-')"></span>
-                                    </div>
+                                    <h4 class="text-sm font-semibold text-gray-800" x-text="regionLabel(region)"></h4>
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Bölge içinde satır ekleyip kolonlar ve block’lar tanımlayabilirsin.
+                                    </p>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <button type="button" @click="moveUp(index)" class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200">
-                                        <i class="fas fa-arrow-up"></i>
-                                    </button>
-                                    <button type="button" @click="moveDown(index)" class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200">
-                                        <i class="fas fa-arrow-down"></i>
-                                    </button>
-                                    <button type="button" @click="removeSection(index)" class="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                                <button type="button"
+                                        @click="addRow(region)"
+                                        class="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                                    <i class="fas fa-plus"></i>
+                                    Satır Ekle
+                                </button>
                             </div>
 
-                            <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                                <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                    <input type="checkbox" x-model="section.is_active" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
-                                    Section aktif
-                                </label>
-                                <div>
-                                    <label class="mb-1 block text-xs font-medium text-gray-600">Sort Order</label>
-                                    <input type="number" x-model.number="section.sort_order" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                            <template x-if="(regions[region] || []).length === 0">
+                                <div class="mt-4 rounded-xl border-2 border-dashed border-gray-300 bg-white px-4 py-8 text-center">
+                                    <div class="text-sm font-medium text-gray-600">Henüz satır eklenmemiş</div>
+                                    <p class="mt-1 text-xs text-gray-500" x-text="regionLabel(region) + ' alanı için ilk satırı ekleyebilirsin.'"></p>
                                 </div>
-                            </div>
+                            </template>
 
-                            <div class="mt-4 grid gap-3">
-                                <template x-for="[fieldName, fieldSchema] in Object.entries(section.schema || {})" :key="fieldName">
-                                    <div>
-                                        <label class="mb-1 block text-xs font-medium text-gray-600" x-text="fieldName"></label>
+                            <div class="mt-4 space-y-4">
+                                <template x-for="(row, rowIndex) in (regions[region] || [])" :key="row._uid">
+                                    <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                        <div class="flex items-start justify-between gap-4">
+                                            <div>
+                                                <div class="text-sm font-semibold text-gray-800" x-text="'Satır #' + (rowIndex + 1)"></div>
+                                                <div class="mt-1 text-xs text-gray-500">Row id: <span x-text="row.id"></span></div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                                                    <input type="checkbox" x-model="row.is_active" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                                                    Satır aktif
+                                                </label>
+                                                <button type="button" @click="moveRow(region, rowIndex, -1)" class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200">
+                                                    <i class="fas fa-arrow-up"></i>
+                                                </button>
+                                                <button type="button" @click="moveRow(region, rowIndex, 1)" class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200">
+                                                    <i class="fas fa-arrow-down"></i>
+                                                </button>
+                                                <button type="button" @click="removeRow(region, rowIndex)" class="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
 
-                                        <template x-if="(fieldSchema.type || 'text') === 'textarea'">
-                                            <textarea x-model="section.content[fieldName]"
-                                                      rows="4"
-                                                      class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"></textarea>
-                                        </template>
+                                        <div class="mt-4 flex items-center justify-between gap-4">
+                                            <div class="text-xs text-gray-500">Kolonlar satır içinde block taşır. Genişliği 1-12 arasında ayarlayabilirsin.</div>
+                                            <button type="button"
+                                                    @click="addColumn(region, rowIndex)"
+                                                    class="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
+                                                <i class="fas fa-columns"></i>
+                                                Kolon Ekle
+                                            </button>
+                                        </div>
 
-                                        <template x-if="(fieldSchema.type || 'text') === 'number'">
-                                            <input type="number"
-                                                   x-model="section.content[fieldName]"
-                                                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                        </template>
+                                        <div class="mt-4 space-y-4">
+                                            <template x-for="(column, columnIndex) in (row.columns || [])" :key="column._uid">
+                                                <div class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+                                                    <div class="flex items-start justify-between gap-4">
+                                                        <div class="flex-1">
+                                                            <div class="text-sm font-semibold text-indigo-900" x-text="'Kolon #' + (columnIndex + 1)"></div>
+                                                            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                                                <div>
+                                                                    <label class="mb-1 block text-xs font-medium text-indigo-800">Genişlik</label>
+                                                                    <input type="number"
+                                                                           min="1"
+                                                                           max="12"
+                                                                           x-model.number="column.width"
+                                                                           class="w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                                                </div>
+                                                                <label class="mt-6 flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-indigo-900">
+                                                                    <input type="checkbox" x-model="column.is_active" class="h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500">
+                                                                    Kolon aktif
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex items-center gap-2">
+                                                            <button type="button" @click="moveColumn(region, rowIndex, columnIndex, -1)" class="rounded bg-white px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-100">
+                                                                <i class="fas fa-arrow-left"></i>
+                                                            </button>
+                                                            <button type="button" @click="moveColumn(region, rowIndex, columnIndex, 1)" class="rounded bg-white px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-100">
+                                                                <i class="fas fa-arrow-right"></i>
+                                                            </button>
+                                                            <button type="button" @click="removeColumn(region, rowIndex, columnIndex)" class="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
 
-                                        <template x-if="(fieldSchema.type || 'text') === 'boolean'">
-                                            <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                                <input type="checkbox" x-model="section.content[fieldName]" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
-                                                true / false
-                                            </label>
-                                        </template>
+                                                    <div class="mt-4 flex flex-wrap items-center gap-2">
+                                                        <select x-model="column.newTemplateId"
+                                                                class="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                                            <option value="">Block şablonu seç</option>
+                                                            @foreach(($availableFrontendSectionTemplates ?? []) as $templateOption)
+                                                                <option value="{{ $templateOption->id }}">{{ $templateOption->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <button type="button"
+                                                                @click="addBlock(region, rowIndex, columnIndex)"
+                                                                class="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
+                                                            <i class="fas fa-plus"></i>
+                                                            Block Ekle
+                                                        </button>
+                                                    </div>
 
-                                        <template x-if="!['textarea', 'number', 'boolean'].includes(fieldSchema.type || 'text')">
-                                            <input type="text"
-                                                   x-model="section.content[fieldName]"
-                                                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                        </template>
+                                                    <div class="mt-4 space-y-4">
+                                                        <template x-if="(column.blocks || []).length === 0">
+                                                            <div class="rounded-xl border-2 border-dashed border-indigo-200 bg-white px-4 py-6 text-center text-xs text-indigo-700">
+                                                                Bu kolonda henüz block yok.
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-for="(block, blockIndex) in (column.blocks || [])" :key="block._uid">
+                                                            <div class="rounded-xl border border-gray-200 bg-white p-4">
+                                                                <div class="flex items-start justify-between gap-4">
+                                                                    <div>
+                                                                        <div class="text-sm font-semibold text-gray-800" x-text="block.template_name || block.type || 'Block'"></div>
+                                                                        <div class="mt-1 text-xs text-gray-500">
+                                                                            <span x-text="'type: ' + (block.type || '-')"></span>
+                                                                            <span> | </span>
+                                                                            <span x-text="'variation: ' + (block.variation || '-')"></span>
+                                                                            <span> | </span>
+                                                                            <span x-text="'render: ' + (block.render_mode || '-')"></span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="flex items-center gap-2">
+                                                                        <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                                                                            <input type="checkbox" x-model="block.is_active" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                                                                            Block aktif
+                                                                        </label>
+                                                                        <button type="button" @click="moveBlock(region, rowIndex, columnIndex, blockIndex, -1)" class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200">
+                                                                            <i class="fas fa-arrow-up"></i>
+                                                                        </button>
+                                                                        <button type="button" @click="moveBlock(region, rowIndex, columnIndex, blockIndex, 1)" class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200">
+                                                                            <i class="fas fa-arrow-down"></i>
+                                                                        </button>
+                                                                        <button type="button" @click="removeBlock(region, rowIndex, columnIndex, blockIndex)" class="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100">
+                                                                            <i class="fas fa-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="mt-4 grid gap-3">
+                                                                    <template x-for="[fieldName, fieldSchema] in Object.entries(block.schema || {})" :key="fieldName">
+                                                                        <div>
+                                                                            <label class="mb-1 block text-xs font-medium text-gray-600" x-text="fieldName"></label>
+
+                                                                            <template x-if="(fieldSchema.type || 'text') === 'textarea'">
+                                                                                <textarea x-model="block.content[fieldName]"
+                                                                                          rows="4"
+                                                                                          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"></textarea>
+                                                                            </template>
+
+                                                                            <template x-if="(fieldSchema.type || 'text') === 'number'">
+                                                                                <input type="number"
+                                                                                       x-model="block.content[fieldName]"
+                                                                                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                                                            </template>
+
+                                                                            <template x-if="(fieldSchema.type || 'text') === 'boolean'">
+                                                                                <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                                                                                    <input type="checkbox" x-model="block.content[fieldName]" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                                                                                    true / false
+                                                                                </label>
+                                                                            </template>
+
+                                                                            <template x-if="!['textarea', 'number', 'boolean'].includes(fieldSchema.type || 'text')">
+                                                                                <input type="text"
+                                                                                       x-model="block.content[fieldName]"
+                                                                                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                                                            </template>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+
+                                                                <div x-show="block.type === 'article-list'" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                                                    Bu block örnek olarak site içindeki blog yazılarından kart üretir. Yani içerik doğrudan <code>page->articles()</code> ilişkisine bağlı değildir.
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </div>
                                 </template>
                             </div>
-
-                            <div x-show="section.type === 'article-list'" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                                Bu section örnek olarak site içindeki blog yazılarından kart üretir. Yani içerik doğrudan <code>page->articles()</code> ilişkisine bağlı değildir.
-                            </div>
-                        </div>
+                        </section>
                     </template>
                 </div>
 
-                <input type="hidden" name="sections_json" :value="serializedSections">
+                <input type="hidden" name="sections_json" :value="serializedRegions">
 
                 <div x-data="{ openFrontendJson: false }" class="mt-5 space-y-3">
                     <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
@@ -238,7 +336,7 @@
                         <label for="sections_json_preview" class="block text-sm font-medium text-gray-700 mb-2">sections_json önizleme</label>
                         <textarea id="sections_json_preview"
                                   x-show="openFrontendJson"
-                                  x-model="serializedSections"
+                                  x-model="serializedRegions"
                                   rows="18"
                                   class="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"></textarea>
                     </div>
@@ -454,56 +552,152 @@
 
 @push('scripts')
 <script>
-function frontendSectionEditor({ initialSections = [], availableTemplates = [] }) {
+function frontendSectionEditor({ initialRegions = null, availableTemplates = [] }) {
     return {
-        sections: [],
+        regions: { header: [], body: [], footer: [] },
+        regionNames: ['header', 'body', 'footer'],
         availableTemplates,
-        selectedTemplateId: '',
 
         init() {
-            this.sections = (initialSections || []).map((section, index) => ({
-                _uid: section._uid || `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
-                id: section.id || `section_${index + 1}`,
-                type: section.type || '',
-                variation: section.variation || '',
-                render_mode: section.render_mode || 'html',
-                section_template_id: section.section_template_id || null,
-                template_name: section.template_name || '',
-                component_key: section.component_key || null,
-                schema: section.schema || this.getTemplateById(section.section_template_id)?.schema || {},
-                content: section.content || {},
-                is_active: section.is_active !== false,
-                sort_order: section.sort_order || index + 1,
-            }));
-
+            this.regions = this.normalizeRegions(initialRegions);
             this.normalizeSortOrder();
         },
 
-        get serializedSections() {
-            return JSON.stringify(this.sections.map((section, index) => ({
-                id: section.id,
-                type: section.type,
-                variation: section.variation,
-                render_mode: section.render_mode,
-                section_template_id: section.section_template_id,
-                is_active: section.is_active,
-                sort_order: section.sort_order || index + 1,
-                content: section.content,
-            })), null, 2);
+        get serializedRegions() {
+            return JSON.stringify({
+                version: 2,
+                regions: this.serializeRegions(),
+            }, null, 2);
         },
 
         getTemplateById(templateId) {
             return this.availableTemplates.find((template) => String(template.id) === String(templateId));
         },
 
-        addSection() {
-            const template = this.getTemplateById(this.selectedTemplateId);
+        regionLabel(region) {
+            return {
+                header: 'Header',
+                body: 'Body',
+                footer: 'Footer',
+            }[region] || region;
+        },
+
+        normalizeRegions(initialRegions) {
+            const output = {
+                header: [],
+                body: [],
+                footer: [],
+            };
+
+            const sourceRegions = initialRegions?.regions || output;
+
+            Object.keys(output).forEach((region) => {
+                output[region] = (sourceRegions[region] || []).map((row, rowIndex) => ({
+                    _uid: row._uid || this.generateUid('row'),
+                    id: row.id || `row_${region}_${rowIndex + 1}`,
+                    type: 'row',
+                    is_active: row.is_active !== false,
+                    columns: (row.columns || []).map((column, columnIndex) => ({
+                        _uid: column._uid || this.generateUid('column'),
+                        id: column.id || `col_${region}_${rowIndex + 1}_${columnIndex + 1}`,
+                        width: Number(column.width || 12),
+                        is_active: column.is_active !== false,
+                        newTemplateId: '',
+                        blocks: (column.blocks || []).map((block, blockIndex) => this.hydrateBlock(block, region, rowIndex, columnIndex, blockIndex)),
+                    })),
+                }));
+            });
+
+            return output;
+        },
+
+        hydrateBlock(block, region, rowIndex, columnIndex, blockIndex) {
+            const template = this.getTemplateById(block.section_template_id);
+
+            return {
+                _uid: block._uid || this.generateUid('block'),
+                id: block.id || `block_${block.type || 'item'}_${rowIndex + 1}_${columnIndex + 1}_${blockIndex + 1}`,
+                type: block.type || template?.type || '',
+                variation: block.variation || template?.variation || 'default',
+                render_mode: block.render_mode || template?.render_mode || 'html',
+                section_template_id: block.section_template_id || template?.id || null,
+                template_name: block.template_name || template?.name || '',
+                component_key: block.component_key || template?.component_key || null,
+                schema: block.schema || template?.schema || {},
+                content: JSON.parse(JSON.stringify(block.content || template?.default_content || {})),
+                is_active: block.is_active !== false,
+                sort_order: block.sort_order || (blockIndex + 1),
+            };
+        },
+
+        generateUid(prefix) {
+            return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        },
+
+        createRow(region, rowIndex) {
+            return {
+                _uid: this.generateUid('row'),
+                id: `row_${region}_${rowIndex + 1}`,
+                type: 'row',
+                is_active: true,
+                columns: [this.createColumn(region, rowIndex, 0)],
+            };
+        },
+
+        createColumn(region, rowIndex, columnIndex) {
+            return {
+                _uid: this.generateUid('column'),
+                id: `col_${region}_${rowIndex + 1}_${columnIndex + 1}`,
+                width: 12,
+                is_active: true,
+                newTemplateId: '',
+                blocks: [],
+            };
+        },
+
+        addRow(region) {
+            this.regions[region].push(this.createRow(region, this.regions[region].length));
+            this.normalizeSortOrder();
+        },
+
+        removeRow(region, rowIndex) {
+            this.regions[region].splice(rowIndex, 1);
+            this.normalizeSortOrder();
+        },
+
+        moveRow(region, rowIndex, direction) {
+            const targetIndex = rowIndex + direction;
+            if (targetIndex < 0 || targetIndex >= this.regions[region].length) return;
+            [this.regions[region][rowIndex], this.regions[region][targetIndex]] = [this.regions[region][targetIndex], this.regions[region][rowIndex]];
+            this.normalizeSortOrder();
+        },
+
+        addColumn(region, rowIndex) {
+            const row = this.regions[region][rowIndex];
+            row.columns.push(this.createColumn(region, rowIndex, row.columns.length));
+            this.normalizeSortOrder();
+        },
+
+        removeColumn(region, rowIndex, columnIndex) {
+            this.regions[region][rowIndex].columns.splice(columnIndex, 1);
+            this.normalizeSortOrder();
+        },
+
+        moveColumn(region, rowIndex, columnIndex, direction) {
+            const columns = this.regions[region][rowIndex].columns;
+            const targetIndex = columnIndex + direction;
+            if (targetIndex < 0 || targetIndex >= columns.length) return;
+            [columns[columnIndex], columns[targetIndex]] = [columns[targetIndex], columns[columnIndex]];
+            this.normalizeSortOrder();
+        },
+
+        addBlock(region, rowIndex, columnIndex) {
+            const column = this.regions[region][rowIndex].columns[columnIndex];
+            const template = this.getTemplateById(column.newTemplateId);
             if (!template) return;
 
-            const sectionIndex = this.sections.length + 1;
-            this.sections.push({
-                _uid: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                id: `${template.type}_${sectionIndex}`,
+            column.blocks.push(this.hydrateBlock({
+                id: `${template.type}_${column.blocks.length + 1}`,
                 type: template.type,
                 variation: template.variation,
                 render_mode: template.render_mode,
@@ -513,35 +707,74 @@ function frontendSectionEditor({ initialSections = [], availableTemplates = [] }
                 schema: template.schema || {},
                 content: JSON.parse(JSON.stringify(template.default_content || {})),
                 is_active: true,
-                sort_order: sectionIndex,
+            }, region, rowIndex, columnIndex, column.blocks.length));
+
+            column.newTemplateId = '';
+            this.normalizeSortOrder();
+        },
+
+        removeBlock(region, rowIndex, columnIndex, blockIndex) {
+            this.regions[region][rowIndex].columns[columnIndex].blocks.splice(blockIndex, 1);
+            this.normalizeSortOrder();
+        },
+
+        moveBlock(region, rowIndex, columnIndex, blockIndex, direction) {
+            const blocks = this.regions[region][rowIndex].columns[columnIndex].blocks;
+            const targetIndex = blockIndex + direction;
+            if (targetIndex < 0 || targetIndex >= blocks.length) return;
+            [blocks[blockIndex], blocks[targetIndex]] = [blocks[targetIndex], blocks[blockIndex]];
+            this.normalizeSortOrder();
+        },
+
+        serializeRegions() {
+            const output = {
+                header: [],
+                body: [],
+                footer: [],
+            };
+
+            Object.keys(output).forEach((region) => {
+                output[region] = (this.regions[region] || []).map((row, rowIndex) => ({
+                    id: row.id || `row_${region}_${rowIndex + 1}`,
+                    type: 'row',
+                    is_active: row.is_active !== false,
+                    columns: (row.columns || []).map((column, columnIndex) => ({
+                        id: column.id || `col_${region}_${rowIndex + 1}_${columnIndex + 1}`,
+                        width: Number(column.width || 12),
+                        is_active: column.is_active !== false,
+                        blocks: (column.blocks || []).map((block, blockIndex) => ({
+                            id: block.id || `block_${block.type || 'item'}_${blockIndex + 1}`,
+                            type: block.type,
+                            variation: block.variation,
+                            render_mode: block.render_mode,
+                            section_template_id: block.section_template_id,
+                            component_key: block.component_key,
+                            is_active: block.is_active !== false,
+                            sort_order: block.sort_order || (blockIndex + 1),
+                            content: block.content || {},
+                        })),
+                    })),
+                }));
             });
 
-            this.normalizeSortOrder();
-            this.selectedTemplateId = '';
-        },
-
-        removeSection(index) {
-            this.sections.splice(index, 1);
-            this.normalizeSortOrder();
-        },
-
-        moveUp(index) {
-            if (index === 0) return;
-            [this.sections[index - 1], this.sections[index]] = [this.sections[index], this.sections[index - 1]];
-            this.normalizeSortOrder();
-        },
-
-        moveDown(index) {
-            if (index >= this.sections.length - 1) return;
-            [this.sections[index + 1], this.sections[index]] = [this.sections[index], this.sections[index + 1]];
-            this.normalizeSortOrder();
+            return output;
         },
 
         normalizeSortOrder() {
-            this.sections = this.sections.map((section, index) => ({
-                ...section,
-                sort_order: index + 1,
-            }));
+            this.regionNames.forEach((region) => {
+                (this.regions[region] || []).forEach((row, rowIndex) => {
+                    row.id = row.id || `row_${region}_${rowIndex + 1}`;
+
+                    (row.columns || []).forEach((column, columnIndex) => {
+                        column.id = column.id || `col_${region}_${rowIndex + 1}_${columnIndex + 1}`;
+                        column.width = Math.min(12, Math.max(1, Number(column.width || 12)));
+
+                        (column.blocks || []).forEach((block, blockIndex) => {
+                            block.sort_order = blockIndex + 1;
+                        });
+                    });
+                });
+            });
         },
     };
 }
