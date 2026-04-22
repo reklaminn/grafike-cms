@@ -75,6 +75,10 @@ const pages: Record<string, PagePayload> = {
           type: "hero",
           variation: "porto-split",
           render_mode: "html",
+          section_template_id: 1,
+          template_name: "Hero / Porto Split",
+          html_template:
+            '<section class="hero hero--porto-split"><div class="container"><p class="eyebrow">{{eyebrow}}</p><h1>{{title}}</h1><p class="subtitle">{{subtitle}}</p><a class="button" href="{{button_url}}">{{button_text}}</a></div></section>',
           is_active: true,
           content: {
             eyebrow: "Grafike Demo",
@@ -89,6 +93,10 @@ const pages: Record<string, PagePayload> = {
           type: "features",
           variation: "porto-icons",
           render_mode: "html",
+          section_template_id: 2,
+          template_name: "Features / Porto Icons",
+          html_template:
+            '<section class="features features--porto-icons"><div class="container"><h2>{{title}}</h2><p>{{description}}</p></div></section>',
           is_active: true,
           content: {
             title: "Why customers choose this brand",

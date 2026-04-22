@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api;
 
 use App\Models\Page;
+use App\Models\SectionTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,6 +14,7 @@ class PageResource extends JsonResource
         /** @var Page $page */
         $page = $this->resource;
         $sections = $page->sections_json ?: $page->layout_json ?: [];
+        $sections = $this->enrichSections($sections);
         $themeSlug = $page->site?->theme?->slug ?: 'porto-furniture';
 
         return [
@@ -56,5 +58,39 @@ class PageResource extends JsonResource
         }
 
         return $breadcrumbs;
+    }
+
+    protected function enrichSections(array $sections): array
+    {
+        $templateIds = collect($sections)
+            ->pluck('section_template_id')
+            ->filter()
+            ->values();
+
+        if ($templateIds->isEmpty()) {
+            return $sections;
+        }
+
+        $templates = SectionTemplate::query()
+            ->whereIn('id', $templateIds)
+            ->get()
+            ->keyBy('id');
+
+        return collect($sections)
+            ->map(function (array $section) use ($templates) {
+                $template = $templates->get($section['section_template_id'] ?? null);
+
+                if (! $template) {
+                    return $section;
+                }
+
+                $section['template_name'] = $template->name;
+                $section['html_template'] = $template->html_template;
+                $section['component_key'] = $template->component_key;
+                $section['schema'] = $template->schema_json ?? [];
+
+                return $section;
+            })
+            ->all();
     }
 }

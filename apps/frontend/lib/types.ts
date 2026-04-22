@@ -57,6 +57,11 @@ export type PageSection = {
   type: string;
   variation: string;
   render_mode: "html" | "component";
+  section_template_id?: number;
+  template_name?: string;
+  html_template?: string | null;
+  component_key?: string | null;
+  schema?: Record<string, unknown>;
   is_active: boolean;
   content: Record<string, string | number | boolean | null>;
   custom_css?: string;
