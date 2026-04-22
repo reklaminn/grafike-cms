@@ -55,8 +55,7 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts \
     --ignore-platform-req=ext-gd \
-    --ignore-platform-req=ext-exif \
-    --ignore-platform-req=ext-zip
+    --ignore-platform-req=ext-exif
 
 
 COPY . .
