@@ -30,7 +30,7 @@
 
     <!-- Sidebar -->
     <aside :class="sidebarOpen ? 'w-64' : 'w-20'"
-           class="fixed inset-y-0 left-0 z-50 bg-white shadow-lg transition-all duration-300 hidden lg:block">
+           class="fixed inset-y-0 left-0 z-50 hidden lg:flex lg:flex-col bg-white shadow-lg transition-all duration-300">
 
         <!-- Logo -->
         <div class="flex h-16 items-center justify-between px-4 border-b border-gray-200">
@@ -46,14 +46,14 @@
         </div>
 
         <!-- Navigation -->
-        <nav class="mt-4 px-3 space-y-1">
+        <nav class="mt-4 flex-1 overflow-y-auto px-3 pb-4 space-y-1">
             @include('admin.partials.sidebar-nav')
         </nav>
     </aside>
 
     <!-- Mobile sidebar -->
     <aside x-show="mobileMenuOpen" x-cloak
-           class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg lg:hidden"
+           class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-white shadow-lg lg:hidden"
            x-transition:enter="transform transition-transform duration-300"
            x-transition:enter-start="-translate-x-full"
            x-transition:enter-end="translate-x-0"
@@ -67,7 +67,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <nav class="mt-4 px-3 space-y-1">
+        <nav class="mt-4 flex-1 overflow-y-auto px-3 pb-4 space-y-1">
             @include('admin.partials.sidebar-nav')
         </nav>
     </aside>
