@@ -42,7 +42,14 @@ class PublicSiteApiTest extends TestCase
             ->assertJsonPath('data.page.template', 'porto-furniture-home')
             ->assertJsonPath('data.page.sections.0.type', 'hero')
             ->assertJsonPath('data.page.sections.0.render_mode', 'html')
+            ->assertJsonPath('data.page.sections.0.template_name', 'Hero / Porto Split')
             ->assertJsonPath('data.theme.slug', 'porto-furniture');
+
+        $template = data_get($response->json(), 'data.page.sections.0.html_template');
+
+        $this->assertIsString($template);
+        $this->assertStringContainsString('{{title}}', $template);
+        $this->assertStringContainsString('{{button_text}}', $template);
     }
 
     public function test_header_menu_endpoint_returns_site_specific_menu_items(): void
