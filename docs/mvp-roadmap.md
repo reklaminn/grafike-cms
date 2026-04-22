@@ -50,6 +50,7 @@ Kapsam:
 - aktif/pasif section kontrolü
 - sayfa bazlı custom css/js
 - global custom css/js
+- backend Sentry entegrasyon planı
 
 İlk endpoint seti:
 
@@ -96,6 +97,7 @@ Kapsam:
 - theme token sistemi
 - React tabanlı section renderer
 - hero/testimonials/blog-list/cta gibi çekirdek section'ların component sürümleri
+- frontend Sentry entegrasyonu
 
 Başarı ölçütü:
 

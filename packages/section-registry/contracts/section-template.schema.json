@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Section Template",
+  "type": "object",
+  "required": ["type", "variation", "render_mode", "schema"],
+  "properties": {
+    "type": {
+      "type": "string"
+    },
+    "variation": {
+      "type": "string"
+    },
+    "render_mode": {
+      "type": "string",
+      "enum": ["html", "component"]
+    },
+    "component_key": {
+      "type": ["string", "null"]
+    },
+    "html_template": {
+      "type": ["string", "null"]
+    },
+    "schema": {
+      "type": "object"
+    }
+  }
+}
