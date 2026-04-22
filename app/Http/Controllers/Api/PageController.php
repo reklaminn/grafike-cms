@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\PageResource;
+use App\Models\Page;
+use App\Services\SeoManager\SeoManager;
+
+class PageController extends Controller
+{
+    public function __construct(protected SeoManager $seoManager) {}
+
+    public function show(string $slug)
+    {
+        if ($slug === 'home') {
+            $homepageId = config('cms.homepage_id');
+            $page = Page::query()
+                ->where('legacy_id', $homepageId)
+                ->orWhere('id', $homepageId)
+                ->published()
+                ->with(['seo', 'language', 'parent'])
+                ->first();
+
+            abort_if(! $page, 404);
+
+            return PageResource::make($page);
+        }
+
+        $resolved = $this->seoManager->resolve($slug);
+
+        abort_if(! $resolved, 404);
+
+        if (($resolved['type'] ?? null) === 'redirect') {
+            return response()->json([
+                'type' => 'redirect',
+                'url' => $resolved['url'],
+                'status_code' => $resolved['status_code'],
+            ]);
+        }
+
+        $entity = $resolved['entity'] ?? null;
+        abort_if(! $entity instanceof Page, 404);
+        abort_if($entity->status !== 'published', 404);
+
+        $entity->loadMissing(['seo', 'language', 'parent']);
+
+        return PageResource::make($entity);
+    }
+}
