@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\PageResource;
 use App\Models\Page;
+use App\Models\Site;
+use App\Models\SiteSetting;
 use App\Services\SeoManager\SeoManager;
 
 class PageController extends Controller
@@ -14,10 +16,14 @@ class PageController extends Controller
     public function show(string $slug)
     {
         if ($slug === 'home') {
-            $homepageId = config('cms.homepage_id');
+            $site = Site::resolve(request()->getHost());
+            $homepageId = SiteSetting::get('cms.homepage_id', config('cms.homepage_id'), $site?->id);
             $page = Page::query()
-                ->where('legacy_id', $homepageId)
-                ->orWhere('id', $homepageId)
+                ->when($site, fn ($query) => $query->where('site_id', $site->id))
+                ->where(fn ($query) => $query
+                    ->where('legacy_id', $homepageId)
+                    ->orWhere('id', $homepageId)
+                )
                 ->published()
                 ->with(['seo', 'language', 'parent', 'site.theme'])
                 ->first();
