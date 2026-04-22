@@ -1,15 +1,40 @@
-import type { PagePayload, SitePayload } from "@/lib/types";
-import { mockPagePayload, mockSitePayload } from "@/lib/api/mock-data";
+import { headers } from "next/headers";
+import type { MenuPayload, PagePayload, SettingsPayload, SitePayload } from "@/lib/types";
+import {
+  mockHeaderMenuPayload,
+  mockPagePayload,
+  mockSettingsPayload,
+  mockSitePayload
+} from "@/lib/api/mock-data";
 
 const API_BASE_URL = process.env.CMS_API_URL;
 
-async function fetchJson<T>(path: string, fallback: T): Promise<T> {
+type ResourceEnvelope<T> = {
+  data: T;
+};
+
+function unwrapResource<T>(payload: T | ResourceEnvelope<T>): T {
+  if (payload && typeof payload === "object" && "data" in payload) {
+    return (payload as ResourceEnvelope<T>).data;
+  }
+
+  return payload as T;
+}
+
+async function getSiteHostHeader(): Promise<string | null> {
+  const requestHeaders = await headers();
+  return requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+}
+
+async function fetchJson<T>(path: string, fallback: T, wrapped = true): Promise<T> {
   if (!API_BASE_URL) {
     return fallback;
   }
 
   try {
+    const siteHost = await getSiteHostHeader();
     const response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: siteHost ? { "X-Site-Host": siteHost } : undefined,
       next: { revalidate: 60 }
     });
 
@@ -17,22 +42,27 @@ async function fetchJson<T>(path: string, fallback: T): Promise<T> {
       return fallback;
     }
 
-    return (await response.json()) as T;
+    const payload = (await response.json()) as T | ResourceEnvelope<T>;
+    return wrapped ? unwrapResource<T>(payload) : (payload as T);
   } catch {
     return fallback;
   }
 }
 
 export async function getSitePayload(): Promise<SitePayload> {
-  return fetchJson<SitePayload>("/api/site", mockSitePayload);
+  return fetchJson<SitePayload>("/api/v1/site", mockSitePayload);
+}
+
+export async function getSettingsPayload(): Promise<SettingsPayload> {
+  return fetchJson<SettingsPayload>("/api/v1/settings", mockSettingsPayload, false);
+}
+
+export async function getMenuPayload(location: string): Promise<MenuPayload> {
+  return fetchJson<MenuPayload>(`/api/v1/menus/${location}`, mockHeaderMenuPayload);
 }
 
 export async function getPagePayload(slug: string): Promise<PagePayload | null> {
   const fallback = mockPagePayload(slug);
 
-  if (!fallback) {
-    return null;
-  }
-
-  return fetchJson<PagePayload>(`/api/pages/${slug}`, fallback);
+  return fetchJson<PagePayload | null>(`/api/v1/pages/${slug}`, fallback);
 }

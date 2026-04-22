@@ -1,4 +1,4 @@
-import type { PagePayload, SitePayload } from "@/lib/types";
+import type { MenuPayload, PagePayload, SettingsPayload, SitePayload } from "@/lib/types";
 
 export const mockSitePayload: SitePayload = {
   site: {
@@ -17,8 +17,50 @@ export const mockSitePayload: SitePayload = {
       container_width: "1320px"
     },
     header_variant: "porto-furniture-header",
-    footer_variant: "porto-furniture-footer"
+    footer_variant: "porto-furniture-footer",
+    locale: "tr"
   }
+};
+
+export const mockSettingsPayload: SettingsPayload = {
+  settings: {
+    site_title: "Grafike Furniture",
+    logo_url: "",
+    favicon_url: "",
+    footer_text: "© 2026 Grafike Furniture",
+    contact: {
+      phone: "+90 212 555 0000",
+      email: "hello@grafike.test",
+      address: "Istanbul, Turkiye"
+    },
+    social: {
+      instagram: "https://instagram.com/grafike"
+    },
+    services: {}
+  }
+};
+
+export const mockHeaderMenuPayload: MenuPayload = {
+  id: 1,
+  name: "Header Menu",
+  slug: "header-tr",
+  location: "header",
+  items: [
+    {
+      id: 1,
+      title: "Ana Sayfa",
+      url: "/home",
+      target: "_self",
+      children: []
+    },
+    {
+      id: 2,
+      title: "Blog",
+      url: "/blog",
+      target: "_self",
+      children: []
+    }
+  ]
 };
 
 const pages: Record<string, PagePayload> = {
@@ -35,6 +77,7 @@ const pages: Record<string, PagePayload> = {
           render_mode: "html",
           is_active: true,
           content: {
+            eyebrow: "Grafike Demo",
             title: "Modern Furniture Collections",
             subtitle: "Basic HTML Section Mode ile ilk Porto benzeri giriş sayfası.",
             button_text: "Discover Collection",
@@ -43,31 +86,13 @@ const pages: Record<string, PagePayload> = {
         },
         {
           id: "features_1",
-          type: "feature-cards",
-          variation: "porto-icons-3up",
+          type: "features",
+          variation: "porto-icons",
           render_mode: "html",
           is_active: true,
           content: {
             title: "Why customers choose this brand",
-            item_1_title: "Premium Materials",
-            item_1_body: "Solid materials and warm finishes.",
-            item_2_title: "Fast Delivery",
-            item_2_body: "Reliable stock and dispatch planning.",
-            item_3_title: "Design Support",
-            item_3_body: "Project-based consultation for architects."
-          }
-        },
-        {
-          id: "cta_1",
-          type: "cta-banner",
-          variation: "porto-dark",
-          render_mode: "html",
-          is_active: true,
-          content: {
-            title: "Need a custom furniture quote?",
-            body: "This block is rendered from a raw HTML section template in Faz 1.",
-            button_text: "Request Offer",
-            button_url: "/contact"
+            description: "This homepage is now coming from the Laravel public API instead of static mock-only wiring."
           }
         }
       ]
@@ -76,6 +101,9 @@ const pages: Record<string, PagePayload> = {
       title: "Home",
       description: "Mock homepage payload",
       canonical: "http://localhost:3000/home"
+    },
+    theme: {
+      slug: "porto-furniture"
     }
   }
 };

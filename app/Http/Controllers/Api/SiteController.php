@@ -16,7 +16,7 @@ class SiteController extends Controller
     public function index()
     {
         $language = $this->resolveLanguage();
-        $site = Site::resolve(request()->getHost());
+        $site = Site::resolve(request()->header('X-Site-Host'));
         $siteId = $site?->id;
         $theme = $site?->theme;
         $tokens = array_merge($theme?->tokens_json ?? [], $site?->tokens_json ?? []);

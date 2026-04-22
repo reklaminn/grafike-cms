@@ -15,7 +15,7 @@ class MenuController extends Controller
     public function show(string $location)
     {
         $language = $this->resolveLanguage();
-        $site = Site::resolve(request()->getHost());
+        $site = Site::resolve(request()->header('X-Site-Host'));
 
         $menu = Menu::query()
             ->when($site, fn ($query) => $query->where('site_id', $site->id))
