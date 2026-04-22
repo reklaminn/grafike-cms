@@ -12,6 +12,8 @@ class PageResource extends JsonResource
     {
         /** @var Page $page */
         $page = $this->resource;
+        $sections = $page->sections_json ?: $page->layout_json ?: [];
+        $themeSlug = $page->site?->theme?->slug ?: 'porto-furniture';
 
         return [
             'page' => [
@@ -22,7 +24,7 @@ class PageResource extends JsonResource
                 'featured_image' => $page->getFirstMediaUrl('cover'),
                 'template' => $page->template ?: $page->page_template,
                 'layout' => $page->layout_json ?? [],
-                'sections' => $page->layout_json ?? [],
+                'sections' => $sections,
                 'language' => $page->language?->code,
             ],
             'seo' => [
@@ -33,7 +35,7 @@ class PageResource extends JsonResource
             ],
             'breadcrumbs' => $this->buildBreadcrumbs($page),
             'theme' => [
-                'slug' => 'porto-furniture',
+                'slug' => $themeSlug,
             ],
         ];
     }
