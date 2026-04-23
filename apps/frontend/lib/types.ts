@@ -68,6 +68,33 @@ export type PageSection = {
   custom_js?: string;
 };
 
+export type PageRegionBlock = PageSection & {
+  region?: "header" | "body" | "footer" | string;
+  row_id?: string;
+  column_id?: string;
+  column_width?: number;
+};
+
+export type PageRegionColumn = {
+  id: string;
+  width: number;
+  is_active: boolean;
+  blocks: PageRegionBlock[];
+};
+
+export type PageRegionRow = {
+  id: string;
+  type: "row" | string;
+  is_active: boolean;
+  columns: PageRegionColumn[];
+};
+
+export type PageRegions = {
+  header: PageRegionRow[];
+  body: PageRegionRow[];
+  footer: PageRegionRow[];
+};
+
 export type PagePayload = {
   page: {
     id: number;
@@ -75,6 +102,8 @@ export type PagePayload = {
     slug: string;
     template?: string | null;
     sections: PageSection[];
+    region_version?: number;
+    regions?: PageRegions;
   };
   seo: {
     title: string;

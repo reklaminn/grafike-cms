@@ -1,5 +1,21 @@
 import type { MenuPayload, PagePayload, SettingsPayload, SitePayload } from "@/lib/types";
 
+function blockToRegion(block: NonNullable<PagePayload["page"]["sections"]>[number], index: number) {
+  return {
+    id: `row_body_${index + 1}`,
+    type: "row" as const,
+    is_active: true,
+    columns: [
+      {
+        id: `col_body_${index + 1}_1`,
+        width: 12,
+        is_active: true,
+        blocks: [block],
+      },
+    ],
+  };
+}
+
 export const mockSitePayload: SitePayload = {
   site: {
     name: "Grafike Furniture",
@@ -120,7 +136,13 @@ const pages: Record<string, PagePayload> = {
               '<article style="padding:20px;border:1px solid var(--border-soft);border-radius:var(--radius-card);display:grid;gap:12px;"><h3 style="margin:0;font-size:20px;">Reusable theme pack mantigi</h3><p style="margin:0;color:var(--text-soft);line-height:1.7;">Ayni template farkli marka tokenlari ile tekrar kullanilabilir.</p><a href="/reusable-theme-pack-mantigi" style="font-weight:700;color:var(--color-primary);">Yaziyi oku</a></article>'
           }
         }
-      ]
+      ],
+      region_version: 2,
+      regions: {
+        header: [],
+        body: [],
+        footer: [],
+      }
     },
     seo: {
       title: "Home",
@@ -154,7 +176,13 @@ const pages: Record<string, PagePayload> = {
               "<p>Bu sayfa demo yazilarini listeler. Faz 1'de liste kartlari da yine HTML section template ile geliyor.</p>"
           }
         }
-      ]
+      ],
+      region_version: 2,
+      regions: {
+        header: [],
+        body: [],
+        footer: [],
+      }
     },
     seo: {
       title: "Blog",
@@ -166,6 +194,9 @@ const pages: Record<string, PagePayload> = {
     }
   }
 };
+
+pages.home.page.regions!.body = pages.home.page.sections.map(blockToRegion);
+pages.blog.page.regions!.body = pages.blog.page.sections.map(blockToRegion);
 
 export function mockPagePayload(slug: string): PagePayload | null {
   return pages[slug] ?? null;
