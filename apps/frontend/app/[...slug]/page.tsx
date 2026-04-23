@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { SectionRenderer } from "@/components/sections/section-renderer";
 import { getPagePayload } from "@/lib/api/client";
+import { getRenderableSections } from "@/lib/sections/region-sections";
 
 type CatchAllPageProps = {
   params: Promise<{ slug?: string[] }>;
@@ -15,9 +16,11 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
     notFound();
   }
 
+  const sections = getRenderableSections(payload.page.sections, payload.page.regions);
+
   return (
     <main className="container page-stack">
-      {payload.page.sections.filter((section) => section.is_active).map((section) => (
+      {sections.map((section) => (
         <SectionRenderer key={section.id} section={section} />
       ))}
     </main>
