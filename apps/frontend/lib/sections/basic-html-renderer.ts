@@ -20,8 +20,10 @@ function renderTemplateString(template: string, content: PageSection["content"])
 }
 
 export function renderBasicHtmlSection(section: PageSection): string {
-  if (section.html_template) {
-    return renderTemplateString(section.html_template, section.content);
+  const template = section.html_override || section.html_template;
+
+  if (template) {
+    return renderTemplateString(template, section.content);
   }
 
   return `

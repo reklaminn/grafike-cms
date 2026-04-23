@@ -29,9 +29,15 @@ class FrontendSections
             return [
                 'version' => (int) ($sections['version'] ?? 2),
                 'regions' => [
-                    'header' => array_values($sections['regions']['header'] ?? []),
-                    'body' => array_values($sections['regions']['body'] ?? []),
-                    'footer' => array_values($sections['regions']['footer'] ?? []),
+                    'header' => array_values(collect($sections['regions']['header'] ?? [])->map(
+                        fn (array $row, int $index) => static::normalizeRow($row, 'header', $index)
+                    )->all()),
+                    'body' => array_values(collect($sections['regions']['body'] ?? [])->map(
+                        fn (array $row, int $index) => static::normalizeRow($row, 'body', $index)
+                    )->all()),
+                    'footer' => array_values(collect($sections['regions']['footer'] ?? [])->map(
+                        fn (array $row, int $index) => static::normalizeRow($row, 'footer', $index)
+                    )->all()),
                 ],
             ];
         }
@@ -92,7 +98,7 @@ class FrontendSections
 
         foreach ($normalized['regions'] as $region => &$rows) {
             foreach ($rows as &$row) {
-                foreach (($row['columns'] ?? []) as &$column) {
+                foreach ($row['columns'] as &$column) {
                     $column['blocks'] = collect($column['blocks'] ?? [])
                         ->map(fn (array $block) => $callback($block, $region))
                         ->all();
@@ -135,6 +141,55 @@ class FrontendSections
             'content' => $section['content'] ?? [],
             'is_active' => $section['is_active'] ?? true,
             'sort_order' => $section['sort_order'] ?? ($index + 1),
+            'wrapper_tag' => $section['wrapper_tag'] ?? 'section',
+            'css_class' => $section['css_class'] ?? null,
+            'element_id' => $section['element_id'] ?? null,
+            'inline_style' => $section['inline_style'] ?? null,
+            'custom_attributes' => $section['custom_attributes'] ?? null,
+            'html_override' => $section['html_override'] ?? null,
+        ];
+    }
+
+    protected static function normalizeRow(array $row, string $region, int $rowIndex): array
+    {
+        return [
+            'id' => $row['id'] ?? 'row_'.$region.'_'.($rowIndex + 1),
+            'type' => 'row',
+            'is_active' => $row['is_active'] ?? true,
+            'container' => $row['container'] ?? 'container',
+            'wrapper_tag' => $row['wrapper_tag'] ?? 'section',
+            'css_class' => $row['css_class'] ?? null,
+            'element_id' => $row['element_id'] ?? null,
+            'inline_style' => $row['inline_style'] ?? null,
+            'custom_attributes' => $row['custom_attributes'] ?? null,
+            'columns' => collect($row['columns'] ?? [])
+                ->map(fn (array $column, int $columnIndex) => static::normalizeColumn($column, $region, $rowIndex, $columnIndex))
+                ->values()
+                ->all(),
+        ];
+    }
+
+    protected static function normalizeColumn(array $column, string $region, int $rowIndex, int $columnIndex): array
+    {
+        return [
+            'id' => $column['id'] ?? 'col_'.$region.'_'.($rowIndex + 1).'_'.($columnIndex + 1),
+            'width' => (int) ($column['width'] ?? 12),
+            'is_active' => $column['is_active'] ?? true,
+            'responsive' => [
+                'xs' => $column['responsive']['xs'] ?? $column['width'] ?? 12,
+                'sm' => $column['responsive']['sm'] ?? null,
+                'md' => $column['responsive']['md'] ?? null,
+                'lg' => $column['responsive']['lg'] ?? null,
+                'xl' => $column['responsive']['xl'] ?? null,
+            ],
+            'css_class' => $column['css_class'] ?? null,
+            'element_id' => $column['element_id'] ?? null,
+            'inline_style' => $column['inline_style'] ?? null,
+            'custom_attributes' => $column['custom_attributes'] ?? null,
+            'blocks' => collect($column['blocks'] ?? [])
+                ->map(fn (array $block, int $blockIndex) => static::normalizeBlock($block, $blockIndex))
+                ->values()
+                ->all(),
         ];
     }
 }

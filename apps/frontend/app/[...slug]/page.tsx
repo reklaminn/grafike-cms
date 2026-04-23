@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { RegionLayoutRenderer } from "@/components/sections/region-layout-renderer";
 import { SectionRenderer } from "@/components/sections/section-renderer";
 import { getPagePayload } from "@/lib/api/client";
 import { getRenderableSections } from "@/lib/sections/region-sections";
@@ -14,6 +15,14 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
 
   if (!payload?.page) {
     notFound();
+  }
+
+  if (payload.page.regions) {
+    return (
+      <main className="page-stack">
+        <RegionLayoutRenderer regions={payload.page.regions} />
+      </main>
+    );
   }
 
   const sections = getRenderableSections(payload.page.sections, payload.page.regions);
