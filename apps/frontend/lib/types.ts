@@ -66,6 +66,12 @@ export type PageSection = {
   content: Record<string, string | number | boolean | null>;
   custom_css?: string;
   custom_js?: string;
+  wrapper_tag?: string | null;
+  css_class?: string | null;
+  element_id?: string | null;
+  inline_style?: string | null;
+  custom_attributes?: string | null;
+  html_override?: string | null;
 };
 
 export type PageRegionBlock = PageSection & {
@@ -79,6 +85,17 @@ export type PageRegionColumn = {
   id: string;
   width: number;
   is_active: boolean;
+  responsive?: {
+    xs?: number | null;
+    sm?: number | null;
+    md?: number | null;
+    lg?: number | null;
+    xl?: number | null;
+  };
+  css_class?: string | null;
+  element_id?: string | null;
+  inline_style?: string | null;
+  custom_attributes?: string | null;
   blocks: PageRegionBlock[];
 };
 
@@ -86,6 +103,12 @@ export type PageRegionRow = {
   id: string;
   type: "row" | string;
   is_active: boolean;
+  container?: string | null;
+  wrapper_tag?: string | null;
+  css_class?: string | null;
+  element_id?: string | null;
+  inline_style?: string | null;
+  custom_attributes?: string | null;
   columns: PageRegionColumn[];
 };
 
