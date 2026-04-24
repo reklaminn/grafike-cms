@@ -11,7 +11,12 @@
     {{-- Tabs --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
         <div class="flex items-center justify-between border-b border-gray-200 px-6">
-            <div class="flex gap-1">
+            <div class="flex flex-wrap gap-1">
+                <button type="button" @click="activeTab = 'themes'"
+                        :class="activeTab === 'themes' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="px-4 py-3 text-sm font-medium border-b-2 transition-colors">
+                    <i class="fas fa-layer-group mr-1"></i> Tema Assetleri
+                </button>
                 <button type="button" @click="activeTab = 'css'"
                         :class="activeTab === 'css' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                         class="px-4 py-3 text-sm font-medium border-b-2 transition-colors">
@@ -39,8 +44,58 @@
             </button>
         </div>
 
+        {{-- Theme Asset Registry --}}
+        <div x-show="activeTab === 'themes'" class="p-6 space-y-4">
+            <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Mevcut ajans akışındaki tema CSS/JS dosya yollarını buradan tanımla. Next.js frontend theme yükleyicisi bu kayıtları kullanacak.
+            </div>
+
+            @forelse($themes as $index => $theme)
+                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <input type="hidden" name="theme_assets[{{ $index }}][id]" value="{{ $theme['id'] }}">
+
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h3 class="text-base font-semibold text-gray-900">{{ $theme['name'] }}</h3>
+                                <span class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">{{ $theme['slug'] }}</span>
+                                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {{ $theme['is_active'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ $theme['is_active'] ? 'Aktif' : 'Pasif' }}
+                                </span>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">Engine: {{ $theme['engine'] }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700">CSS Dosya Yolları</label>
+                            <textarea name="theme_assets[{{ $index }}][css_paths]" rows="8"
+                                      class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm font-mono bg-gray-900 text-green-300 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+                                      spellcheck="false"
+                                      placeholder="/themes/porto-furniture/vendor.css&#10;/themes/porto-furniture/theme.css">{{ old("theme_assets.$index.css_paths", $theme['css_paths']) }}</textarea>
+                            <p class="mt-2 text-xs text-gray-500">Her satıra bir CSS dosya yolu ekle.</p>
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700">JS Dosya Yolları</label>
+                            <textarea name="theme_assets[{{ $index }}][js_paths]" rows="8"
+                                      class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm font-mono bg-gray-900 text-yellow-300 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+                                      spellcheck="false"
+                                      placeholder="/themes/porto-furniture/theme.js">{{ old("theme_assets.$index.js_paths", $theme['js_paths']) }}</textarea>
+                            <p class="mt-2 text-xs text-gray-500">Her satıra bir JS dosya yolu ekle.</p>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center text-gray-400">
+                    <i class="fas fa-layer-group mb-3 text-4xl"></i>
+                    <p>Henüz tema kaydı bulunmuyor.</p>
+                </div>
+            @endforelse
+        </div>
+
         {{-- CSS Editor --}}
-        <div x-show="activeTab === 'css'" class="p-6">
+        <div x-show="activeTab === 'css'" x-cloak class="p-6">
             <input type="hidden" name="assets[0][id]" value="{{ $globalCss->id }}">
             <label class="block text-sm font-medium text-gray-700 mb-2">Global CSS (tüm sayfalarda)</label>
             <textarea name="assets[0][content]" rows="20"

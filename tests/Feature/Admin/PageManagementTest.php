@@ -5,6 +5,8 @@ namespace Tests\Feature\Admin;
 use App\Models\Admin;
 use App\Models\Language;
 use App\Models\Page;
+use App\Models\SectionTemplate;
+use App\Models\Theme;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -101,6 +103,56 @@ class PageManagementTest extends TestCase
 
         $response->assertRedirect();
         $this->assertSoftDeleted('pages', ['id' => $page->id]);
+    }
+
+    public function test_admin_can_migrate_legacy_layout_to_new_builder_sections(): void
+    {
+        $language = Language::factory()->create();
+        $theme = Theme::create([
+            'name' => 'Porto',
+            'slug' => 'porto',
+            'is_active' => true,
+        ]);
+
+        SectionTemplate::create([
+            'theme_id' => $theme->id,
+            'name' => 'Legacy Content Block',
+            'type' => 'content-block',
+            'variation' => 'legacy-content-block',
+            'render_mode' => 'component',
+            'legacy_module_key' => '90',
+            'schema_json' => [],
+            'default_content_json' => [],
+            'legacy_config_map_json' => [],
+            'is_active' => true,
+        ]);
+
+        $page = Page::factory()->create([
+            'language_id' => $language->id,
+            'layout_json' => [
+                [
+                    'type' => 'body',
+                    'children' => [[
+                        [
+                            'coltype' => 'col-12',
+                            'children' => [[
+                                ['modulid' => 90, 'json' => []],
+                            ]],
+                        ],
+                    ]],
+                ],
+            ],
+        ]);
+
+        $response = $this->actingAs($this->admin, 'admin')
+            ->post(route('admin.pages.migrate-to-sections', $page));
+
+        $response->assertRedirect(route('admin.pages.edit', $page));
+
+        $page->refresh();
+
+        $this->assertSame(2, data_get($page->sections_json, 'version'));
+        $this->assertSame('content-block', data_get($page->sections_json, 'regions.body.0.columns.0.blocks.0.type'));
     }
 
     public function test_page_creation_requires_title(): void

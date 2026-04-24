@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { RegionLayoutRenderer } from "@/components/sections/region-layout-renderer";
 import { SectionRenderer } from "@/components/sections/section-renderer";
-import { getPagePayload } from "@/lib/api/client";
+import { getMenusPayload, getPagePayload, getSettingsPayload, getSitePayload } from "@/lib/api/client";
 import { getRenderableSections } from "@/lib/sections/region-sections";
 
 type CatchAllPageProps = {
@@ -11,7 +11,12 @@ type CatchAllPageProps = {
 export default async function CatchAllPage({ params }: CatchAllPageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug?.join("/") || "home";
-  const payload = await getPagePayload(slug);
+  const [payload, sitePayload, settingsPayload, menusPayload] = await Promise.all([
+    getPagePayload(slug),
+    getSitePayload(),
+    getSettingsPayload(),
+    getMenusPayload(),
+  ]);
 
   if (!payload?.page) {
     notFound();
@@ -20,7 +25,12 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
   if (payload.page.regions) {
     return (
       <main className="page-stack">
-        <RegionLayoutRenderer regions={payload.page.regions} />
+        <RegionLayoutRenderer
+          regions={payload.page.regions}
+          site={sitePayload.site}
+          settings={settingsPayload.settings}
+          menus={menusPayload}
+        />
       </main>
     );
   }
@@ -30,7 +40,13 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
   return (
     <main className="container page-stack">
       {sections.map((section) => (
-        <SectionRenderer key={section.id} section={section} />
+        <SectionRenderer
+          key={section.id}
+          section={section}
+          site={sitePayload.site}
+          settings={settingsPayload.settings}
+          menus={menusPayload}
+        />
       ))}
     </main>
   );

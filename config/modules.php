@@ -165,4 +165,70 @@ return [
             ['name' => 'paginate', 'label' => 'Sayfalama', 'type' => 'boolean', 'default' => '1'],
         ],
     ],
+    1501 => [
+        'name' => 'Hero Banner',
+        'class' => \App\Services\ModuleRenderer\Modules\HeroBannerModule::class,
+        'view' => 'frontend.modules.hero-banner',
+        'configSchema' => [
+            ['name' => 'title', 'label' => 'Başlık', 'type' => 'text', 'default' => 'Sayfanız için güçlü bir başlık'],
+            ['name' => 'subtitle', 'label' => 'Alt Başlık', 'type' => 'textarea', 'default' => 'Kısa bir açıklama veya değer önermesi ekleyin.'],
+            ['name' => 'button_text', 'label' => 'Buton Metni', 'type' => 'text', 'default' => 'İncele'],
+            ['name' => 'button_url', 'label' => 'Buton Linki', 'type' => 'text', 'default' => '#'],
+            ['name' => 'background_image', 'label' => 'Arkaplan Görsel URL', 'type' => 'text'],
+            ['name' => 'align', 'label' => 'Hizalama', 'type' => 'select', 'options' => 'left,center,right', 'default' => 'left'],
+            ['name' => 'theme', 'label' => 'Tema', 'type' => 'select', 'options' => 'dark,light,brand', 'default' => 'dark'],
+        ],
+    ],
+    1502 => [
+        'name' => 'Metin Blogu',
+        'class' => \App\Services\ModuleRenderer\Modules\TextBlockModule::class,
+        'view' => 'frontend.modules.text-block',
+        'configSchema' => [
+            ['name' => 'title', 'label' => 'Başlık', 'type' => 'text'],
+            ['name' => 'body', 'label' => 'Metin / HTML', 'type' => 'textarea'],
+            ['name' => 'align', 'label' => 'Hizalama', 'type' => 'select', 'options' => 'left,center,right', 'default' => 'left'],
+            ['name' => 'max_width', 'label' => 'Maksimum Genişlik', 'type' => 'select', 'options' => 'full,4xl,3xl,2xl', 'default' => '3xl'],
+        ],
+    ],
+    1503 => [
+        'name' => 'CTA Banner',
+        'class' => \App\Services\ModuleRenderer\Modules\CtaBannerModule::class,
+        'view' => 'frontend.modules.cta-banner',
+        'configSchema' => [
+            ['name' => 'title', 'label' => 'Başlık', 'type' => 'text', 'default' => 'Güçlü bir çağrı alanı'],
+            ['name' => 'body', 'label' => 'Açıklama', 'type' => 'textarea', 'default' => 'Ziyaretçiyi aksiyona yönlendirecek kısa bir açıklama yazın.'],
+            ['name' => 'button_text', 'label' => 'Buton Metni', 'type' => 'text', 'default' => 'Hemen Başla'],
+            ['name' => 'button_url', 'label' => 'Buton Linki', 'type' => 'text', 'default' => '#'],
+            ['name' => 'secondary_text', 'label' => 'İkincil Link Metni', 'type' => 'text'],
+            ['name' => 'secondary_url', 'label' => 'İkincil Link', 'type' => 'text'],
+            ['name' => 'theme', 'label' => 'Tema', 'type' => 'select', 'options' => 'brand,dark,light', 'default' => 'brand'],
+        ],
+    ],
+    1504 => [
+        'name' => 'Spacer',
+        'class' => \App\Services\ModuleRenderer\Modules\SpacerModule::class,
+        'view' => 'frontend.modules.spacer',
+        'configSchema' => [
+            ['name' => 'height', 'label' => 'Yükseklik (px)', 'type' => 'number', 'default' => '64'],
+            ['name' => 'height_mobile', 'label' => 'Mobil Yükseklik (px)', 'type' => 'number', 'default' => '32'],
+        ],
+    ],
+    1505 => [
+        'name' => 'Video Embed',
+        'class' => \App\Services\ModuleRenderer\Modules\VideoEmbedModule::class,
+        'view' => 'frontend.modules.video-embed',
+        'configSchema' => [
+            ['name' => 'title', 'label' => 'Başlık', 'type' => 'text'],
+            ['name' => 'embed_url', 'label' => 'YouTube/Vimeo/Gömme URL', 'type' => 'text'],
+            ['name' => 'aspect_ratio', 'label' => 'Oran', 'type' => 'select', 'options' => '16:9,4:3,1:1', 'default' => '16:9'],
+        ],
+    ],
+    1506 => [
+        'name' => 'Custom HTML',
+        'class' => \App\Services\ModuleRenderer\Modules\TextBlockModule::class,
+        'view' => 'frontend.modules.text-block',
+        'configSchema' => [
+            ['name' => 'body', 'label' => 'HTML İçerik', 'type' => 'textarea', 'default' => '<div class="custom-html-block">Özel HTML içeriğinizi buraya ekleyin.</div>'],
+        ],
+    ],
 ];

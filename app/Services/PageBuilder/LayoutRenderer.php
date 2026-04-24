@@ -22,6 +22,10 @@ class LayoutRenderer
 
         $html = '';
         foreach ($layout as $row) {
+            if (($row['active'] ?? true) === false) {
+                continue;
+            }
+
             $html .= $this->renderRow($row, $page, $article);
         }
 
@@ -47,6 +51,10 @@ class LayoutRenderer
         foreach ($row['children'] ?? [] as $columns) {
             if (is_array($columns)) {
                 foreach ($columns as $column) {
+                    if (($column['active'] ?? true) === false) {
+                        continue;
+                    }
+
                     $html .= $this->renderColumn($column, $page, $article);
                 }
             }
@@ -77,6 +85,10 @@ class LayoutRenderer
         foreach ($column['children'] ?? [] as $modules) {
             if (is_array($modules)) {
                 foreach ($modules as $module) {
+                    if (($module['active'] ?? true) === false) {
+                        continue;
+                    }
+
                     $html .= $this->renderModule($module, $page, $article);
                 }
             }

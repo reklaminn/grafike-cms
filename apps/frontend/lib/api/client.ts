@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import type { MenuPayload, PagePayload, SettingsPayload, SitePayload } from "@/lib/types";
+import type { MenuPayload, MenusPayload, PagePayload, SettingsPayload, SitePayload } from "@/lib/types";
 import {
   mockHeaderMenuPayload,
   mockPagePayload,
@@ -59,6 +59,10 @@ export async function getSettingsPayload(): Promise<SettingsPayload> {
 
 export async function getMenuPayload(location: string): Promise<MenuPayload> {
   return fetchJson<MenuPayload>(`/api/v1/menus/${location}`, mockHeaderMenuPayload);
+}
+
+export async function getMenusPayload(): Promise<MenusPayload> {
+  return fetchJson<MenusPayload>("/api/v1/menus", [mockHeaderMenuPayload]);
 }
 
 export async function getPagePayload(slug: string): Promise<PagePayload | null> {

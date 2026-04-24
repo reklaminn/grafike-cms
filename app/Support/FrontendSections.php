@@ -141,7 +141,7 @@ class FrontendSections
             'content' => $section['content'] ?? [],
             'is_active' => $section['is_active'] ?? true,
             'sort_order' => $section['sort_order'] ?? ($index + 1),
-            'wrapper_tag' => $section['wrapper_tag'] ?? 'section',
+            'wrapper_tag' => $section['wrapper_tag'] ?? null,
             'css_class' => $section['css_class'] ?? null,
             'element_id' => $section['element_id'] ?? null,
             'inline_style' => $section['inline_style'] ?? null,
@@ -156,8 +156,8 @@ class FrontendSections
             'id' => $row['id'] ?? 'row_'.$region.'_'.($rowIndex + 1),
             'type' => 'row',
             'is_active' => $row['is_active'] ?? true,
-            'container' => $row['container'] ?? 'container',
-            'wrapper_tag' => $row['wrapper_tag'] ?? 'section',
+            'container' => $row['container'] ?? null,
+            'wrapper_tag' => $row['wrapper_tag'] ?? null,
             'css_class' => $row['css_class'] ?? null,
             'element_id' => $row['element_id'] ?? null,
             'inline_style' => $row['inline_style'] ?? null,
@@ -173,10 +173,10 @@ class FrontendSections
     {
         return [
             'id' => $column['id'] ?? 'col_'.$region.'_'.($rowIndex + 1).'_'.($columnIndex + 1),
-            'width' => (int) ($column['width'] ?? 12),
+            'width' => isset($column['width']) && $column['width'] !== '' ? (int) $column['width'] : null,
             'is_active' => $column['is_active'] ?? true,
             'responsive' => [
-                'xs' => $column['responsive']['xs'] ?? $column['width'] ?? 12,
+                'xs' => isset($column['responsive']['xs']) && $column['responsive']['xs'] !== '' ? (int) $column['responsive']['xs'] : (isset($column['width']) && $column['width'] !== '' ? (int) $column['width'] : null),
                 'sm' => $column['responsive']['sm'] ?? null,
                 'md' => $column['responsive']['md'] ?? null,
                 'lg' => $column['responsive']['lg'] ?? null,

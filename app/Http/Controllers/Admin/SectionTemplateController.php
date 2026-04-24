@@ -1,0 +1,242 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SectionTemplateRequest;
+use App\Models\SectionTemplate;
+use App\Models\Theme;
+use App\Support\FrontendSections;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class SectionTemplateController extends Controller
+{
+    private const COMMON_TYPE_CATALOG = [
+        'header' => 'Header',
+        'footer' => 'Footer',
+        'hero' => 'Hero / Banner',
+        'hero-banner' => 'Hero Banner',
+        'slider' => 'Slider',
+        'rich-text' => 'Rich Text / Metin',
+        'content-block' => 'İçerik Bloğu',
+        'article-list' => 'Yazı Liste',
+        'features' => 'Özellik Alanı',
+        'cta' => 'CTA Alanı',
+        'gallery' => 'Galeri',
+        'spacer' => 'Boşluk / Spacer',
+        'video-embed' => 'Video Embed',
+        'page-header' => 'Sayfa Başlığı',
+        'menu' => 'Menu',
+        'testimonials' => 'Testimonials',
+        'cards' => 'Kart Grubu',
+    ];
+
+    public function index(Request $request)
+    {
+        $query = SectionTemplate::query()->with('theme');
+
+        if ($request->filled('q')) {
+            $search = trim((string) $request->string('q'));
+
+            $query->where(function ($builder) use ($search) {
+                $builder
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhere('variation', 'like', "%{$search}%")
+                    ->orWhere('legacy_module_key', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('theme_id')) {
+            $query->where('theme_id', $request->integer('theme_id'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->input('status') === 'active');
+        }
+
+        $sectionTemplates = $query
+            ->orderByDesc('is_active')
+            ->orderBy('theme_id')
+            ->orderBy('type')
+            ->orderBy('variation')
+            ->paginate(18)
+            ->withQueryString();
+
+        $themes = Theme::query()->orderBy('name')->get(['id', 'name', 'slug']);
+
+        $usageCounts = $this->computeUsageCounts();
+
+        return view('admin.section-templates.index', compact('sectionTemplates', 'themes', 'usageCounts'));
+    }
+
+    private function computeUsageCounts(): array
+    {
+        return DB::table('pages')
+            ->whereNotNull('sections_json')
+            ->get(['sections_json'])
+            ->reduce(function (array $carry, object $row): array {
+                $sections = json_decode($row->sections_json, true);
+                foreach (FrontendSections::flattenBlocks($sections ?: []) as $block) {
+                    $id = $block['section_template_id'] ?? null;
+                    if ($id) {
+                        $carry[$id] = ($carry[$id] ?? 0) + 1;
+                    }
+                }
+                return $carry;
+            }, []);
+    }
+
+    public function create()
+    {
+        $sectionTemplate = new SectionTemplate([
+            'render_mode' => 'html',
+            'is_active' => true,
+            'schema_json' => [],
+            'default_content_json' => [],
+            'legacy_config_map_json' => [],
+        ]);
+
+        return view('admin.section-templates.create', $this->buildFormViewData($sectionTemplate));
+    }
+
+    public function store(SectionTemplateRequest $request)
+    {
+        $sectionTemplate = SectionTemplate::create($request->validated());
+
+        return redirect()
+            ->route('admin.section-templates.edit', $sectionTemplate)
+            ->with('success', 'Block şablonu oluşturuldu.');
+    }
+
+    public function edit(SectionTemplate $sectionTemplate)
+    {
+        return view('admin.section-templates.edit', $this->buildFormViewData($sectionTemplate));
+    }
+
+    public function update(SectionTemplateRequest $request, SectionTemplate $sectionTemplate)
+    {
+        $sectionTemplate->update($request->validated());
+
+        return redirect()
+            ->route('admin.section-templates.edit', $sectionTemplate)
+            ->with('success', 'Block şablonu güncellendi.');
+    }
+
+    public function duplicate(SectionTemplate $sectionTemplate)
+    {
+        $baseVariation = $sectionTemplate->variation.'-copy';
+        $variation = $baseVariation;
+        $suffix = 2;
+
+        while (SectionTemplate::query()
+            ->where('theme_id', $sectionTemplate->theme_id)
+            ->where('type', $sectionTemplate->type)
+            ->where('variation', $variation)
+            ->exists()) {
+            $variation = $baseVariation.'-'.$suffix;
+            $suffix++;
+        }
+
+        $copy = $sectionTemplate->replicate();
+        $copy->name       = $sectionTemplate->name . ' (kopya)';
+        $copy->variation  = $variation;
+        $copy->is_active  = false;
+        $copy->save();
+
+        return redirect()
+            ->route('admin.section-templates.edit', $copy)
+            ->with('success', 'Block şablonu kopyalandı. Adı ve varyasyonu düzenleyin.');
+    }
+
+    public function destroy(SectionTemplate $sectionTemplate)
+    {
+        $sectionTemplate->delete();
+
+        return redirect()
+            ->route('admin.section-templates.index')
+            ->with('success', 'Block şablonu silindi.');
+    }
+
+    private function buildFormViewData(SectionTemplate $sectionTemplate): array
+    {
+        $themes = Theme::query()->orderBy('name')->get();
+        $typeOptions = $this->buildTypeOptions();
+        $variationOptions = $this->buildVariationOptions($themes, $sectionTemplate);
+
+        return compact('sectionTemplate', 'themes', 'typeOptions', 'variationOptions');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildTypeOptions(): array
+    {
+        $existingTypes = SectionTemplate::query()
+            ->distinct()
+            ->orderBy('type')
+            ->pluck('type')
+            ->filter()
+            ->mapWithKeys(fn (string $type) => [$type => self::COMMON_TYPE_CATALOG[$type] ?? str($type)->replace('-', ' ')->headline()->value()])
+            ->all();
+
+        return array_replace(self::COMMON_TYPE_CATALOG, $existingTypes);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Theme>  $themes
+     * @return array<int|string, array<string, array<int, string>>>
+     */
+    private function buildVariationOptions($themes, SectionTemplate $sectionTemplate): array
+    {
+        $existing = SectionTemplate::query()
+            ->select(['theme_id', 'type', 'variation'])
+            ->orderBy('variation')
+            ->get()
+            ->groupBy('theme_id')
+            ->map(function ($themeGroup) {
+                return $themeGroup
+                    ->groupBy('type')
+                    ->map(fn ($typeGroup) => $typeGroup->pluck('variation')->filter()->unique()->values()->all())
+                    ->all();
+            })
+            ->all();
+
+        $defaultsByType = [
+            'header' => ['default-header', 'topbar-header', 'mega-header'],
+            'footer' => ['default-footer', 'simple-footer', 'multi-column-footer'],
+            'hero' => ['porto-split', 'centered', 'full-width'],
+            'hero-banner' => ['porto-hero', 'simple-hero'],
+            'slider' => ['owl-carousel', 'hero-slider'],
+            'rich-text' => ['porto-content', 'plain-content'],
+            'content-block' => ['default-content-block'],
+            'article-list' => ['porto-cards', 'grid', 'minimal-list'],
+            'features' => ['porto-icons', 'cards', 'inline-icons'],
+            'cta' => ['banner', 'split', 'minimal'],
+            'gallery' => ['grid-gallery', 'masonry-gallery'],
+            'spacer' => ['default-spacer'],
+            'video-embed' => ['default-video', 'cover-video'],
+            'page-header' => ['default-header', 'minimal-header'],
+            'menu' => ['header-menu', 'footer-menu'],
+            'testimonials' => ['cards', 'carousel'],
+            'cards' => ['three-cards', 'four-cards'],
+        ];
+
+        foreach ($themes as $theme) {
+            $existing[$theme->id] = array_replace_recursive(
+                $defaultsByType,
+                $existing[$theme->id] ?? []
+            );
+        }
+
+        if ($sectionTemplate->theme_id && $sectionTemplate->type && $sectionTemplate->variation) {
+            $existing[$sectionTemplate->theme_id][$sectionTemplate->type] = array_values(array_unique(array_merge(
+                $existing[$sectionTemplate->theme_id][$sectionTemplate->type] ?? [],
+                [$sectionTemplate->variation]
+            )));
+        }
+
+        return $existing;
+    }
+}

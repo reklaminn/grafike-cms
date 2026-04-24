@@ -1,0 +1,11 @@
+@extends('admin.layouts.app')
+
+@section('title', 'Yeni Tema')
+@section('page-title', 'Yeni Tema')
+
+@section('content')
+    <form method="POST" action="{{ route('admin.themes.store') }}">
+        @csrf
+        @include('admin.themes._form')
+    </form>
+@endsection

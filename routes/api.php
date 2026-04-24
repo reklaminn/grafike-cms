@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     Route::get('site', [SiteController::class, 'index']);
     Route::get('settings', [SettingsController::class, 'index']);
+    Route::get('menus', [MenuController::class, 'index']);
     Route::get('menus/{location}', [MenuController::class, 'show']);
     Route::get('pages/{slug}', [PageController::class, 'show']);
     Route::get('articles', [ArticleController::class, 'index']);

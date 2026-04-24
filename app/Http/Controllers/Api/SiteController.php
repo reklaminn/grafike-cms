@@ -28,6 +28,10 @@ class SiteController extends Controller
             'theme' => [
                 'slug' => $theme?->slug ?? 'porto-furniture',
                 'engine' => $theme?->engine ?? 'next',
+                'assets' => [
+                    'css' => data_get($theme?->assets_json, 'css', []),
+                    'js' => data_get($theme?->assets_json, 'js', []),
+                ],
             ],
             'tokens' => [
                 'color_primary' => $tokens['color_primary'] ?? SiteSetting::get('design.color_primary', '#7c5a3a', $siteId),

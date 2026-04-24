@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DesignAsset;
+use App\Models\Theme;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -31,19 +32,41 @@ class DesignController extends Controller
             ['content' => '']
         );
 
-        return view('admin.design.index', compact('globalCss', 'globalJs', 'headerScripts', 'footerScripts'));
+        $themes = Theme::query()
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->get()
+            ->map(function (Theme $theme) {
+                $assets = $theme->assets_json ?? [];
+
+                return [
+                    'id' => $theme->id,
+                    'name' => $theme->name,
+                    'slug' => $theme->slug,
+                    'engine' => $theme->engine,
+                    'is_active' => $theme->is_active,
+                    'css_paths' => implode("\n", data_get($assets, 'css', [])),
+                    'js_paths' => implode("\n", data_get($assets, 'js', [])),
+                ];
+            });
+
+        return view('admin.design.index', compact('globalCss', 'globalJs', 'headerScripts', 'footerScripts', 'themes'));
     }
 
     public function update(Request $request)
     {
         $request->validate([
-            'assets' => 'required|array',
-            'assets.*.id' => 'required|exists:design_assets,id',
+            'assets' => 'nullable|array',
+            'assets.*.id' => 'required_with:assets|exists:design_assets,id',
             'assets.*.content' => 'nullable|string|max:500000',
+            'theme_assets' => 'nullable|array',
+            'theme_assets.*.id' => 'required_with:theme_assets|exists:themes,id',
+            'theme_assets.*.css_paths' => 'nullable|string|max:500000',
+            'theme_assets.*.js_paths' => 'nullable|string|max:500000',
         ]);
 
         DB::transaction(function () use ($request) {
-            foreach ($request->assets as $assetData) {
+            foreach ($request->input('assets', []) as $assetData) {
                 $asset = DesignAsset::find($assetData['id']);
 
                 // Create backup before update (keep last 5)
@@ -57,19 +80,49 @@ class DesignController extends Controller
                 $oldBackups = DB::table('design_asset_backups')
                     ->where('design_asset_id', $asset->id)
                     ->orderByDesc('id')
-                    ->skip(5)
                     ->pluck('id');
 
+                $oldBackups = $oldBackups->slice(5);
+
                 if ($oldBackups->isNotEmpty()) {
-                    DB::table('design_asset_backups')->whereIn('id', $oldBackups)->delete();
+                    DB::table('design_asset_backups')->whereIn('id', $oldBackups->all())->delete();
                 }
 
                 $asset->update(['content' => $assetData['content'] ?? '']);
+            }
+
+            foreach ($request->input('theme_assets', []) as $themeAssetData) {
+                /** @var Theme|null $theme */
+                $theme = Theme::find($themeAssetData['id']);
+
+                if (! $theme) {
+                    continue;
+                }
+
+                $assets = $theme->assets_json ?? [];
+                $assets['css'] = $this->parsePathList($themeAssetData['css_paths'] ?? '');
+                $assets['js'] = $this->parsePathList($themeAssetData['js_paths'] ?? '');
+
+                $theme->update([
+                    'assets_json' => $assets,
+                ]);
             }
         });
 
         return redirect()
             ->route('admin.design.index')
             ->with('success', 'Tasarım dosyaları başarıyla kaydedildi.');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function parsePathList(string $value): array
+    {
+        return collect(preg_split('/\r\n|\r|\n/', $value) ?: [])
+            ->map(fn (string $line) => trim($line))
+            ->filter()
+            ->values()
+            ->all();
     }
 }

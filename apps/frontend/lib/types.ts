@@ -7,6 +7,10 @@ export type SitePayload = {
     theme: {
       slug: string;
       engine: string;
+      assets?: {
+        css: string[];
+        js: string[];
+      };
     };
     tokens: ThemeTokens;
     header_variant: string;
@@ -35,6 +39,8 @@ export type MenuPayload = {
   location: string;
   items: MenuItem[];
 };
+
+export type MenusPayload = MenuPayload[];
 
 export type SettingsPayload = {
   settings: {

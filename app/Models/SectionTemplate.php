@@ -16,8 +16,10 @@ class SectionTemplate extends Model
         'name',
         'render_mode',
         'component_key',
+        'legacy_module_key',
         'html_template',
         'schema_json',
+        'legacy_config_map_json',
         'default_content_json',
         'preview_image',
         'is_active',
@@ -27,6 +29,7 @@ class SectionTemplate extends Model
     {
         return [
             'schema_json' => 'array',
+            'legacy_config_map_json' => 'array',
             'default_content_json' => 'array',
             'is_active' => 'boolean',
         ];

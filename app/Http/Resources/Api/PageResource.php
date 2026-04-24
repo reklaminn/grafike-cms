@@ -5,6 +5,7 @@ namespace App\Http\Resources\Api;
 use App\Models\Page;
 use App\Models\SectionTemplate;
 use App\Support\FrontendSections;
+use App\Support\LegacyLayoutToSections;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,7 +15,7 @@ class PageResource extends JsonResource
     {
         /** @var Page $page */
         $page = $this->resource;
-        $rawSections = $page->sections_json ?: $page->layout_json ?: [];
+        $rawSections = $this->resolveRenderableSections($page);
         $sections = $this->enrichSections(FrontendSections::flattenBlocks($rawSections));
         $regionLayout = $this->enrichRegionBlocks($rawSections);
         $themeSlug = $page->site?->theme?->slug ?: 'porto-furniture';
@@ -44,6 +45,25 @@ class PageResource extends JsonResource
                 'slug' => $themeSlug,
             ],
         ];
+    }
+
+    protected function resolveRenderableSections(Page $page): array
+    {
+        $sections = $page->sections_json;
+
+        if (! empty($sections)) {
+            $flattened = FrontendSections::flattenBlocks($sections);
+
+            if (! empty($flattened)) {
+                return $sections;
+            }
+        }
+
+        if (! empty($page->layout_json)) {
+            return LegacyLayoutToSections::convert($page, $page->site?->theme);
+        }
+
+        return [];
     }
 
     protected function buildBreadcrumbs(Page $page): array

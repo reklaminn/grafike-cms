@@ -1,0 +1,123 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
+
+class SectionTemplateRequest extends FormRequest
+{
+    /**
+     * @var array<string, string>
+     */
+    private array $jsonDecodeErrors = [];
+
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'schema_json' => $this->decodeJsonInput('schema_json'),
+            'legacy_config_map_json' => $this->decodeJsonInput('legacy_config_map_json'),
+            'default_content_json' => $this->decodeJsonInput('default_content_json'),
+            'is_active' => $this->boolean('is_active'),
+        ]);
+    }
+
+    public function rules(): array
+    {
+        $templateId = $this->route('section_template')?->id;
+
+        return [
+            'theme_id' => ['required', 'exists:themes,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', 'string', 'max:100'],
+            'variation' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('section_templates')
+                    ->where(fn ($query) => $query->where('theme_id', $this->input('theme_id'))
+                        ->where('type', $this->input('type')))
+                    ->ignore($templateId),
+            ],
+            'render_mode' => ['required', Rule::in(['html', 'component'])],
+            'component_key' => ['nullable', 'string', 'max:255'],
+            'legacy_module_key' => ['nullable', 'string', 'max:255'],
+            'html_template' => ['nullable', 'string'],
+            'schema_json' => ['nullable', 'array'],
+            'legacy_config_map_json' => ['nullable', 'array'],
+            'default_content_json' => ['nullable', 'array'],
+            'preview_image' => ['nullable', 'string', 'max:500'],
+            'is_active' => ['nullable', 'boolean'],
+        ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            foreach ($this->jsonDecodeErrors as $field => $message) {
+                $v->errors()->add($field, $message);
+            }
+
+            $schema = $this->input('schema_json');
+            if (! is_array($schema)) {
+                return;
+            }
+
+            foreach ($schema as $index => $field) {
+                if (! is_array($field)) {
+                    $v->errors()->add('schema_json', 'Schema JSON içindeki her alan bir obje olmalı.');
+                    continue;
+                }
+
+                if (blank($field['type'] ?? null)) {
+                    $v->errors()->add('schema_json', 'Schema JSON içindeki her alan için type zorunlu. Eksik satır: '.($index + 1).'.');
+                }
+
+                if (blank($field['key'] ?? $field['name'] ?? null)) {
+                    $v->errors()->add('schema_json', 'Schema JSON içindeki her alan için key veya name zorunlu. Eksik satır: '.($index + 1).'.');
+                }
+            }
+        });
+    }
+
+    public function messages(): array
+    {
+        return [
+            'variation.unique' => 'Bu tema ve block tipi için aynı varyasyon zaten mevcut.',
+        ];
+    }
+
+    private function decodeJsonInput(string $key): ?array
+    {
+        $value = $this->input($key);
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->jsonDecodeErrors[$key] = match ($key) {
+                'schema_json' => 'Schema JSON geçerli JSON olmalı.',
+                'default_content_json' => 'Default Content JSON geçerli JSON olmalı.',
+                'legacy_config_map_json' => 'Legacy Config Map JSON geçerli JSON olmalı.',
+                default => 'JSON alanı geçerli JSON olmalı.',
+            };
+
+            return null;
+        }
+
+        return is_array($decoded) ? $decoded : null;
+    }
+}

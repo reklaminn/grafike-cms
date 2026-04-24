@@ -15,8 +15,9 @@ class PageController extends Controller
 
     public function show(string $slug)
     {
+        $site = Site::resolve(request()->header('X-Site-Host'));
+
         if ($slug === 'home') {
-            $site = Site::resolve(request()->header('X-Site-Host'));
             $homepageId = SiteSetting::get('cms.homepage_id', config('cms.homepage_id'), $site?->id);
             $page = Page::query()
                 ->when($site, fn ($query) => $query->where('site_id', $site->id))
@@ -35,7 +36,23 @@ class PageController extends Controller
 
         $resolved = $this->seoManager->resolve($slug);
 
-        abort_if(! $resolved, 404);
+        if (! $resolved) {
+            $page = Page::query()
+                ->when($site, function ($query) use ($site) {
+                    $query->where(function ($inner) use ($site) {
+                        $inner->where('site_id', $site->id)
+                            ->orWhereNull('site_id');
+                    });
+                })
+                ->where('slug', $slug)
+                ->published()
+                ->with(['seo', 'language', 'parent', 'site.theme'])
+                ->first();
+
+            abort_if(! $page, 404);
+
+            return PageResource::make($page);
+        }
 
         if (($resolved['type'] ?? null) === 'redirect') {
             return response()->json([

@@ -1,19 +1,27 @@
 import { createElement } from "react";
-import type { PageRegionColumn, PageRegionRow, PageRegions } from "@/lib/types";
+import type { MenusPayload, PageRegionColumn, PageRegionRow, PageRegions, SettingsPayload, SitePayload } from "@/lib/types";
 import { buildElementProps } from "@/lib/sections/element-props";
 import { SectionRenderer } from "@/components/sections/section-renderer";
 
 type RegionLayoutRendererProps = {
   regions: PageRegions;
+  site: SitePayload["site"];
+  settings: SettingsPayload["settings"];
+  menus: MenusPayload;
 };
 
 function columnWidthPercent(column: PageRegionColumn): number {
-  const width = Number(column?.responsive?.xs || column.width || 12);
+  const width = Number(column?.width || 12);
   return Math.max(1, Math.min(12, width)) / 12 * 100;
 }
 
 function columnClassNames(column: PageRegionColumn): string {
-  const classes = [`col-${Number(column?.responsive?.xs || column.width || 12)}`];
+  const classes: string[] = [];
+  const xs = column?.width;
+
+  if (xs) {
+    classes.push(`col-${Number(xs)}`);
+  }
 
   (["sm", "md", "lg", "xl"] as const).forEach((breakpoint) => {
     if (column?.responsive?.[breakpoint]) {
@@ -28,7 +36,12 @@ function columnClassNames(column: PageRegionColumn): string {
   return classes.join(" ");
 }
 
-function renderColumn(column: PageRegionColumn) {
+function renderColumn(
+  column: PageRegionColumn,
+  site: SitePayload["site"],
+  settings: SettingsPayload["settings"],
+  menus: MenusPayload,
+) {
   if (column.is_active === false) {
     return null;
   }
@@ -49,6 +62,23 @@ function renderColumn(column: PageRegionColumn) {
     ...(props.style || {}),
   };
 
+  const blocks = (column.blocks || [])
+    .filter((block) => block.is_active !== false)
+    .map((block) => <SectionRenderer key={block.id} section={block} site={site} settings={settings} menus={menus} />);
+
+  const hasColumnChrome = Boolean(
+    column.css_class ||
+    column.element_id ||
+    column.inline_style ||
+    column.custom_attributes ||
+    (column.responsive?.sm || column.responsive?.md || column.responsive?.lg || column.responsive?.xl) ||
+    column?.width,
+  );
+
+  if (!hasColumnChrome) {
+    return blocks;
+  }
+
   return createElement(
     "div",
     {
@@ -56,18 +86,21 @@ function renderColumn(column: PageRegionColumn) {
       ...props,
       style,
     },
-    (column.blocks || [])
-      .filter((block) => block.is_active !== false)
-      .map((block) => <SectionRenderer key={block.id} section={block} />),
+    blocks,
   );
 }
 
-function renderRow(row: PageRegionRow) {
+function renderRow(
+  row: PageRegionRow,
+  site: SitePayload["site"],
+  settings: SettingsPayload["settings"],
+  menus: MenusPayload,
+) {
   if (row.is_active === false) {
     return null;
   }
 
-  const tag = row.wrapper_tag || "section";
+  const tag = row.wrapper_tag || "div";
   const className = [row.container, row.css_class].filter(Boolean).join(" ");
   const props = buildElementProps({
     className,
@@ -75,6 +108,20 @@ function renderRow(row: PageRegionRow) {
     inlineStyle: row.inline_style,
     customAttributes: row.custom_attributes,
   });
+
+  const rowChildren = (row.columns || []).map((column) => renderColumn(column, site, settings, menus));
+  const hasRowChrome = Boolean(
+    row.container ||
+    row.wrapper_tag ||
+    row.css_class ||
+    row.element_id ||
+    row.inline_style ||
+    row.custom_attributes,
+  );
+
+  if (!hasRowChrome) {
+    return rowChildren;
+  }
 
   return createElement(
     tag,
@@ -89,15 +136,15 @@ function renderRow(row: PageRegionRow) {
         ...(props.style || {}),
       },
     },
-    (row.columns || []).map((column) => renderColumn(column)),
+    rowChildren,
   );
 }
 
-export function RegionLayoutRenderer({ regions }: RegionLayoutRendererProps) {
+export function RegionLayoutRenderer({ regions, site, settings, menus }: RegionLayoutRendererProps) {
   return (
     <>
       {(["header", "body", "footer"] as const).flatMap((region) =>
-        (regions[region] || []).map((row) => renderRow(row)),
+        (regions[region] || []).map((row) => renderRow(row, site, settings, menus)),
       )}
     </>
   );

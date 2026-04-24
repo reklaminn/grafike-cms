@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Language;
+use App\Models\Page;
 use Database\Seeders\FrontendTemplateDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,6 +29,8 @@ class PublicSiteApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.site.name', 'Grafike Next Demo')
             ->assertJsonPath('data.site.theme.slug', 'porto-furniture')
+            ->assertJsonPath('data.site.theme.assets.css.0', '/themes/porto-furniture/vendor.css')
+            ->assertJsonPath('data.site.theme.assets.js.0', '/themes/porto-furniture/theme.js')
             ->assertJsonPath('data.site.tokens.color_primary', '#8b5e3c')
             ->assertJsonPath('data.site.header_variant', 'porto-furniture-header');
     }
@@ -79,5 +83,37 @@ class PublicSiteApiTest extends TestCase
             ->assertJsonPath('settings.site_title', 'Grafike Next Demo')
             ->assertJsonPath('settings.contact.email', 'hello@grafike.test')
             ->assertJsonPath('settings.social.instagram', 'https://instagram.com/grafike');
+    }
+
+    public function test_page_endpoint_can_fallback_to_page_slug_without_seo_entry(): void
+    {
+        $language = Language::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $page = Page::factory()->create([
+            'site_id' => 1,
+            'language_id' => $language->id,
+            'title' => 'Legacy Page',
+            'slug' => 'legacy-page',
+            'status' => 'published',
+            'sections_json' => [
+                'version' => 2,
+                'regions' => [
+                    'header' => [],
+                    'body' => [],
+                    'footer' => [],
+                ],
+            ],
+        ]);
+
+        $response = $this
+            ->withServerVariables(['HTTP_HOST' => 'demo.grafike.test'])
+            ->getJson('/api/v1/pages/'.$page->slug);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.page.slug', 'legacy-page')
+            ->assertJsonPath('data.page.id', $page->id);
     }
 }

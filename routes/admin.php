@@ -108,6 +108,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('design', [DesignController::class, 'update'])->name('design.update');
         Route::resource('themes', ThemeController::class)->except('show');
         Route::resource('section-templates', SectionTemplateController::class)->except('show');
+        Route::post('section-templates/{section_template}/duplicate', [SectionTemplateController::class, 'duplicate'])->name('section-templates.duplicate');
 
         // SMTP Profiles
         Route::resource('smtp-profiles', SmtpProfileController::class)->except('show');
