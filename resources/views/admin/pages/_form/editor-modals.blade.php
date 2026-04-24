@@ -301,7 +301,7 @@
                     <div>
                         <label class="mb-1 block text-xs font-medium text-gray-600">Genel (col-)</label>
                         <select
-                                :value="columnSettingsDraft.width ?? ''"
+                                x-effect="$el.value = String(columnSettingsDraft.width ?? '')"
                                 @change="columnSettingsDraft.width = $event.target.value; normalizeResponsive(columnSettingsDraft)"
                                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
                             <option value="">Yok</option>
@@ -314,7 +314,7 @@
                         <div>
                             <label class="mb-1 block text-xs font-medium text-gray-600" x-text="breakpoint.toUpperCase() + ' (col-' + breakpoint + '-)'"></label>
                             <select
-                                    :value="columnSettingsDraft.responsive[breakpoint] ?? ''"
+                                    x-effect="$el.value = String(columnSettingsDraft.responsive[breakpoint] ?? '')"
                                     @change="columnSettingsDraft.responsive[breakpoint] = $event.target.value"
                                     class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
                                 <option value="">Yok</option>
