@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PageRequest;
 use App\Models\Language;
 use App\Models\Page;
+use App\Models\PageRevision;
 use App\Models\SectionTemplate;
 use App\Models\SeoEntry;
 use App\Support\FrontendSections;
+use App\Support\LegacyLayoutToSections;
+use App\Support\PageEditorData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -58,7 +61,9 @@ class PageController extends Controller
             ->get()
             ->values();
 
-        return view('admin.pages.create', compact('languages', 'parentPages', 'availableFrontendSectionTemplates'));
+        $editorData = PageEditorData::for(null, $availableFrontendSectionTemplates);
+
+        return view('admin.pages.create', compact('languages', 'parentPages', 'editorData'));
     }
 
     public function store(PageRequest $request)
@@ -132,6 +137,7 @@ class PageController extends Controller
 
         $frontendEditorSections = FrontendSections::flattenBlocks($page->sections_json);
         $frontendRegions = FrontendSections::normalize($page->sections_json);
+        $editorData = PageEditorData::for($page, $availableFrontendSectionTemplates);
 
         return view('admin.pages.edit', compact(
             'page',
@@ -141,7 +147,8 @@ class PageController extends Controller
             'availableFrontendSectionTemplates',
             'siteArticles',
             'frontendEditorSections',
-            'frontendRegions'
+            'frontendRegions',
+            'editorData'
         ));
     }
 
@@ -184,7 +191,8 @@ class PageController extends Controller
 
         return redirect()
             ->route('admin.pages.edit', $page)
-            ->with('success', 'Sayfa başarıyla güncellendi.');
+            ->with('success', 'Sayfa başarıyla güncellendi.')
+            ->with('preview_refresh', now()->timestamp);
     }
 
     public function destroy(Page $page)
@@ -199,6 +207,55 @@ class PageController extends Controller
         return redirect()
             ->route('admin.pages.index')
             ->with('success', 'Sayfa başarıyla silindi.');
+    }
+
+    public function migrateToSections(Page $page)
+    {
+        if (empty($page->layout_json) || ! is_array($page->layout_json)) {
+            return back()->with('error', 'Bu sayfada dönüştürülecek legacy layout verisi bulunmuyor.');
+        }
+
+        Page::recordSnapshot($page, 'before-legacy-migration');
+
+        $sections = LegacyLayoutToSections::convert($page, $page->site?->theme);
+
+        $page->forceFill([
+            'sections_json' => $sections,
+        ])->saveQuietly();
+
+        return redirect()
+            ->route('admin.pages.edit', $page)
+            ->with('success', 'Sayfa yeni builder yapısına dönüştürüldü. Artık Next.js builder tarafında düzenlenebilir.')
+            ->with('preview_refresh', now()->timestamp);
+    }
+
+    public function migratePreview(Page $page)
+    {
+        if (empty($page->layout_json) || ! is_array($page->layout_json)) {
+            return response()->json(['error' => 'Bu sayfada dönüştürülecek legacy layout verisi bulunmuyor.'], 422);
+        }
+
+        return response()->json([
+            'current_sections'  => $page->sections_json ?? [],
+            'preview_sections'  => LegacyLayoutToSections::convert($page, $page->site?->theme),
+        ]);
+    }
+
+    public function restoreRevision(Page $page, PageRevision $revision)
+    {
+        abort_unless($revision->page_id === $page->id, 404);
+
+        Page::recordSnapshot($page, "restore-from-revision-{$revision->id}");
+
+        $page->forceFill([
+            'sections_json' => $revision->snapshot['sections_json'] ?? null,
+            'layout_json'   => $revision->snapshot['layout_json'] ?? null,
+        ])->saveQuietly();
+
+        return redirect()
+            ->route('admin.pages.edit', $page)
+            ->with('success', "Revizyon #{$revision->id} geri yüklendi.")
+            ->with('preview_refresh', now()->timestamp);
     }
 
     /**

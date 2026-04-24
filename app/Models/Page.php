@@ -85,6 +85,25 @@ class Page extends Model implements HasMedia
         return $query->where('language_id', $languageId);
     }
 
+    public function revisions()
+    {
+        return $this->hasMany(PageRevision::class)->orderByDesc('created_at');
+    }
+
+    public static function recordSnapshot(self $page, ?string $reason = null): PageRevision
+    {
+        return PageRevision::create([
+            'page_id'    => $page->id,
+            'admin_id'   => auth()->id(),
+            'snapshot'   => [
+                'sections_json' => $page->sections_json,
+                'layout_json'   => $page->layout_json,
+            ],
+            'reason'     => $reason,
+            'created_at' => now(),
+        ]);
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('cover')->singleFile();

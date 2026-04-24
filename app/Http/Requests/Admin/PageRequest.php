@@ -2,8 +2,12 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\SectionTemplate;
+use App\Support\FrontendSections;
+use App\Support\FrontendSectionSchemaValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class PageRequest extends FormRequest
 {
@@ -37,6 +41,7 @@ class PageRequest extends FormRequest
             'external_url' => ['nullable', 'url', 'max:500'],
             'link_target' => ['nullable', Rule::in(['_self', '_blank'])],
             'layout_json' => ['nullable', 'json'],
+            'sections_json' => ['nullable', 'json'],
             'cover_image' => ['nullable', 'image', 'max:5120'],
 
             // SEO fields
@@ -47,6 +52,38 @@ class PageRequest extends FormRequest
             'seo_canonical' => ['nullable', 'url', 'max:500'],
             'seo_noindex' => ['boolean'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            $rawJson = $this->input('sections_json');
+
+            if (! $rawJson || $v->errors()->has('sections_json')) {
+                return;
+            }
+
+            $decoded = json_decode($rawJson, true);
+
+            if (! is_array($decoded)) {
+                return;
+            }
+
+            $templateIds = FrontendSections::collectTemplateIds($decoded);
+
+            if (empty($templateIds)) {
+                return;
+            }
+
+            $templates = SectionTemplate::whereIn('id', $templateIds)->get()->keyBy('id');
+            $schemaErrors = FrontendSectionSchemaValidator::validate($decoded, $templates);
+
+            foreach ($schemaErrors as $field => $messages) {
+                foreach ($messages as $message) {
+                    $v->errors()->add($field, $message);
+                }
+            }
+        });
     }
 
     public function attributes(): array

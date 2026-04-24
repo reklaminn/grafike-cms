@@ -1,0 +1,852 @@
+@push('scripts')
+<script>
+function frontendSectionEditor({ initialRegions = null, availableTemplates = [] }) {
+    return {
+        regions: { header: [], body: [], footer: [] },
+        regionNames: ['header', 'body', 'footer'],
+        availableTemplates,
+        pickerModalOpen: false,
+        pickerSearch: '',
+        pickerTarget: null,
+        openBlockMenuFor: null,
+        settingsModalOpen: false,
+        settingsTarget: null,
+        settingsTab: 'content',
+        settingsDraft: null,
+        columnSettingsModalOpen: false,
+        columnSettingsTarget: null,
+        columnSettingsTab: 'layout',
+        columnSettingsDraft: null,
+        rowSettingsModalOpen: false,
+        rowSettingsTarget: null,
+        rowSettingsTab: 'layout',
+        rowSettingsDraft: null,
+
+        init() {
+            this.regions = this.normalizeRegions(initialRegions);
+            this.normalizeSortOrder();
+        },
+
+        get serializedRegions() {
+            return JSON.stringify({
+                version: 2,
+                regions: this.serializeRegions(),
+            }, null, 2);
+        },
+
+        getTemplateById(templateId) {
+            return this.availableTemplates.find((template) => String(template.id) === String(templateId));
+        },
+
+        getTemplateByType(type) {
+            return this.availableTemplates.find((template) => template.type === type);
+        },
+
+        regionLabel(region) {
+            return {
+                header: 'Header',
+                body: 'Body',
+                footer: 'Footer',
+            }[region] || region;
+        },
+
+        regionShellClass(region) {
+            return {
+                header: 'border-blue-200 bg-blue-50/40',
+                body: 'border-green-200 bg-green-50/40',
+                footer: 'border-purple-200 bg-purple-50/40',
+            }[region] || 'border-gray-200 bg-gray-50/40';
+        },
+
+        regionBadgeClass(region) {
+            return {
+                header: 'bg-blue-200 text-blue-800',
+                body: 'bg-green-200 text-green-800',
+                footer: 'bg-purple-200 text-purple-800',
+            }[region] || 'bg-gray-200 text-gray-800';
+        },
+
+        regionButtonClass(region) {
+            return {
+                header: 'bg-blue-50 text-blue-700 hover:bg-blue-100',
+                body: 'bg-green-50 text-green-700 hover:bg-green-100',
+                footer: 'bg-purple-50 text-purple-700 hover:bg-purple-100',
+            }[region] || 'bg-gray-50 text-gray-700 hover:bg-gray-100';
+        },
+
+        rowShellClass(region) {
+            return {
+                header: 'border-blue-200',
+                body: 'border-green-200',
+                footer: 'border-purple-200',
+            }[region] || 'border-gray-200';
+        },
+
+        columnClassLabel(column) {
+            const width = column?.width;
+            if (width === '' || width === null || width === undefined) {
+                return 'Yok';
+            }
+            return `col-${Math.min(12, Math.max(1, Number(width)))}`;
+        },
+
+        editorColumnCanvasStyle(column) {
+            const rawWidth = column?.width;
+            if (rawWidth === '' || rawWidth === null || rawWidth === undefined) {
+                return {
+                    gridColumn: 'span 12 / span 12',
+                };
+            }
+
+            const bounded = Math.min(12, Math.max(1, Number(rawWidth)));
+
+            return {
+                gridColumn: `span ${bounded} / span ${bounded}`,
+            };
+        },
+
+        columnLayoutSummary(column) {
+            if (!column) return 'Yok';
+
+            const parts = [];
+            const width = column?.width;
+            if (width !== '' && width !== null && width !== undefined) {
+                parts.push(`col-${Math.min(12, Math.max(1, Number(width)))}`);
+            }
+
+            ['sm', 'md', 'lg', 'xl'].forEach((breakpoint) => {
+                const value = column?.responsive?.[breakpoint];
+                if (value !== '' && value !== null && value !== undefined) {
+                    parts.push(`col-${breakpoint}-${value}`);
+                }
+            });
+
+            return parts.length ? parts.join(' ') : 'Yok';
+        },
+
+        canMoveColumn(row, columnIndex, direction) {
+            const columns = row?.columns || [];
+            const targetIndex = columnIndex + direction;
+            return targetIndex >= 0 && targetIndex < columns.length;
+        },
+
+        normalizeRegions(initialRegions) {
+            const output = {
+                header: [],
+                body: [],
+                footer: [],
+            };
+
+            const sourceRegions = initialRegions?.regions || output;
+
+            Object.keys(output).forEach((region) => {
+                output[region] = (sourceRegions[region] || []).map((row, rowIndex) => ({
+                    _uid: row._uid || this.generateUid('row'),
+                    id: row.id || `row_${region}_${rowIndex + 1}`,
+                    type: 'row',
+                    is_active: row.is_active !== false,
+                    _expanded: row._expanded !== false,
+                    container: row.container || '',
+                    wrapper_tag: row.wrapper_tag || '',
+                    css_class: row.css_class || '',
+                    element_id: row.element_id || '',
+                    inline_style: row.inline_style || '',
+                    custom_attributes: row.custom_attributes || '',
+                    columns: (row.columns || []).map((column, columnIndex) => ({
+                        _uid: column._uid || this.generateUid('column'),
+                        id: column.id || `col_${region}_${rowIndex + 1}_${columnIndex + 1}`,
+                        width: column.width ?? column?.responsive?.xs ?? null,
+                        is_active: column.is_active !== false,
+                        responsive: {
+                            xs: column.width ?? column?.responsive?.xs ?? '',
+                            sm: column?.responsive?.sm ?? '',
+                            md: column?.responsive?.md ?? '',
+                            lg: column?.responsive?.lg ?? '',
+                            xl: column?.responsive?.xl ?? '',
+                        },
+                        css_class: column.css_class || '',
+                        element_id: column.element_id || '',
+                        inline_style: column.inline_style || '',
+                        custom_attributes: column.custom_attributes || '',
+                        blocks: (column.blocks || []).map((block, blockIndex) => this.hydrateBlock(block, region, rowIndex, columnIndex, blockIndex)),
+                    })),
+                }));
+            });
+
+            return output;
+        },
+
+        hydrateBlock(block, region, rowIndex, columnIndex, blockIndex) {
+            const template = this.getTemplateById(block.section_template_id);
+            const hasSchema = block.schema && typeof block.schema === 'object' && Object.keys(block.schema).length > 0;
+
+            return {
+                _uid: block._uid || this.generateUid('block'),
+                id: block.id || `block_${block.type || 'item'}_${rowIndex + 1}_${columnIndex + 1}_${blockIndex + 1}`,
+                type: block.type || template?.type || '',
+                variation: block.variation || template?.variation || 'default',
+                render_mode: block.render_mode || template?.render_mode || 'html',
+                section_template_id: block.section_template_id || template?.id || null,
+                template_name: block.template_name || template?.name || '',
+                component_key: block.component_key || template?.component_key || null,
+                schema: hasSchema ? block.schema : (template?.schema || {}),
+                content: JSON.parse(JSON.stringify(block.content || template?.default_content || {})),
+                is_active: block.is_active !== false,
+                sort_order: block.sort_order || (blockIndex + 1),
+                wrapper_tag: block.wrapper_tag || '',
+                css_class: block.css_class || '',
+                element_id: block.element_id || '',
+                inline_style: block.inline_style || '',
+                custom_attributes: block.custom_attributes || '',
+                html_template: block.html_template || template?.html_template || null,
+                html_override: block.html_override || '',
+            };
+        },
+
+        generateUid(prefix) {
+            return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        },
+
+        createRow(region, rowIndex) {
+            return {
+                _uid: this.generateUid('row'),
+                id: `row_${region}_${rowIndex + 1}`,
+                type: 'row',
+                is_active: true,
+                _expanded: true,
+                container: '',
+                wrapper_tag: '',
+                css_class: '',
+                element_id: '',
+                inline_style: '',
+                custom_attributes: '',
+                columns: [],
+            };
+        },
+
+        toggleRowExpand(region, rowIndex) {
+            const row = this.regions[region][rowIndex];
+            row._expanded = row._expanded === false ? true : false;
+        },
+
+        blockSummary(block) {
+            const content = block.content || {};
+            const summaryKey = ['title', 'subtitle', 'description', 'eyebrow', 'button_text']
+                .find((key) => typeof content[key] === 'string' && String(content[key]).trim() !== '');
+
+            if (!summaryKey) {
+                return 'Hazır alanlar bu kartın içinde düzenlenir.';
+            }
+
+            return String(content[summaryKey]);
+        },
+
+        createColumn(region, rowIndex, columnIndex) {
+            return {
+                _uid: this.generateUid('column'),
+                id: `col_${region}_${rowIndex + 1}_${columnIndex + 1}`,
+                width: null,
+                is_active: true,
+                responsive: { xs: '', sm: '', md: '', lg: '', xl: '' },
+                css_class: '',
+                element_id: '',
+                inline_style: '',
+                custom_attributes: '',
+                blocks: [],
+            };
+        },
+
+        normalizeResponsive(column) {
+            column.responsive = column.responsive || { xs: '', sm: '', md: '', lg: '', xl: '' };
+            if (column.width !== '' && column.width !== null && column.width !== undefined) {
+                column.width = Math.min(12, Math.max(1, Number(column.width)));
+                column.responsive.xs = column.width;
+            } else {
+                column.width = null;
+                column.responsive.xs = '';
+            }
+            ['sm', 'md', 'lg', 'xl'].forEach((key) => {
+                if (column.responsive[key] === null || column.responsive[key] === undefined) {
+                    column.responsive[key] = '';
+                }
+            });
+        },
+
+        getFilteredTemplates(search) {
+            const query = String(search || '').trim().toLowerCase();
+
+            if (!query) {
+                return this.availableTemplates;
+            }
+
+            return this.availableTemplates.filter((template) =>
+                [template.name, template.type, template.variation]
+                    .filter(Boolean)
+                    .some((value) => String(value).toLowerCase().includes(query))
+            );
+        },
+
+        getRegionPresets(region) {
+            const presets = [];
+
+            if (region === 'body') {
+                if (this.getTemplateByType('hero')) presets.push({ key: 'hero', label: 'Hero' });
+                if (this.getTemplateByType('rich-text')) {
+                    presets.push({ key: 'rich-text', label: 'Tanıtım Metni' });
+                    presets.push({ key: 'two-column-content', label: '2 Kolon İçerik' });
+                }
+                if (this.getTemplateByType('features')) presets.push({ key: 'features', label: 'Özellik Alanı' });
+                if (this.getTemplateByType('article-list')) presets.push({ key: 'article-list', label: 'Yazı Liste' });
+            }
+
+            if (region === 'header' && this.getTemplateByType('rich-text')) {
+                presets.push({ key: 'header-basic', label: 'Basit Header' });
+            }
+
+            if (region === 'footer' && this.getTemplateByType('rich-text')) {
+                presets.push({ key: 'footer-basic', label: 'Basit Footer' });
+            }
+
+            return presets;
+        },
+
+        addRow(region) {
+            this.regions[region].push(this.createRow(region, this.regions[region].length));
+            this.normalizeSortOrder();
+        },
+
+        createBlockFromTemplate(template, region, rowIndex, columnIndex, blockIndex, overrides = {}) {
+            const isShellBlock = ['header', 'footer'].includes(String(template?.type || '').toLowerCase());
+
+            return this.hydrateBlock({
+                id: `${template.type}_${blockIndex + 1}`,
+                type: template.type,
+                variation: template.variation,
+                render_mode: template.render_mode,
+                section_template_id: template.id,
+                template_name: template.name,
+                component_key: template.component_key || null,
+                schema: template.schema || {},
+                content: {
+                    ...(template.default_content || {}),
+                    ...(overrides.content || {}),
+                },
+                is_active: true,
+                wrapper_tag: isShellBlock ? '' : (overrides.wrapper_tag ?? ''),
+                ...overrides,
+            }, region, rowIndex, columnIndex, blockIndex);
+        },
+
+        applyPreset(region, presetKey) {
+            const rows = this.buildPresetRows(region, presetKey, this.regions[region].length);
+            if (!rows.length) return;
+            this.regions[region].push(...rows);
+            this.normalizeSortOrder();
+        },
+
+        buildPresetRows(region, presetKey, startIndex) {
+            const richText = this.getTemplateByType('rich-text');
+            const hero = this.getTemplateByType('hero');
+            const features = this.getTemplateByType('features');
+            const articleList = this.getTemplateByType('article-list');
+
+            const createRowWithColumns = (widths, blockFactory) => {
+                const rowIndex = startIndex;
+
+                return {
+                    _uid: this.generateUid('row'),
+                    id: `row_${region}_${rowIndex + 1}`,
+                    type: 'row',
+                    is_active: true,
+                    _expanded: true,
+                    columns: widths.map((width, columnIndex) => ({
+                        ...this.createColumn(region, rowIndex, columnIndex),
+                        width,
+                        responsive: { xs: width, sm: '', md: '', lg: '', xl: '' },
+                        blocks: blockFactory(columnIndex),
+                    })),
+                };
+            };
+
+            switch (presetKey) {
+                case 'hero':
+                    if (!hero) return [];
+                    return [createRowWithColumns([12], () => [
+                        this.createBlockFromTemplate(hero, region, startIndex, 0, 0),
+                    ])];
+
+                case 'rich-text':
+                    if (!richText) return [];
+                    return [createRowWithColumns([12], () => [
+                        this.createBlockFromTemplate(richText, region, startIndex, 0, 0),
+                    ])];
+
+                case 'features':
+                    if (!features) return [];
+                    return [createRowWithColumns([12], () => [
+                        this.createBlockFromTemplate(features, region, startIndex, 0, 0),
+                    ])];
+
+                case 'article-list':
+                    if (!articleList) return [];
+                    return [createRowWithColumns([12], () => [
+                        this.createBlockFromTemplate(articleList, region, startIndex, 0, 0),
+                    ])];
+
+                case 'two-column-content':
+                    if (!richText) return [];
+                    return [createRowWithColumns([6, 6], (columnIndex) => [
+                        this.createBlockFromTemplate(richText, region, startIndex, columnIndex, 0, {
+                            content: {
+                                title: columnIndex === 0 ? 'Sol içerik' : 'Sağ içerik',
+                            },
+                        }),
+                    ])];
+
+                case 'header-basic':
+                    if (!richText) return [];
+                    return [createRowWithColumns([12], () => [
+                        this.createBlockFromTemplate(richText, region, startIndex, 0, 0, {
+                            content: { title: 'Header alanı' },
+                        }),
+                    ])];
+
+                case 'footer-basic':
+                    if (!richText) return [];
+                    return [createRowWithColumns([12], () => [
+                        this.createBlockFromTemplate(richText, region, startIndex, 0, 0, {
+                            content: { title: 'Footer alanı' },
+                        }),
+                    ])];
+
+                default:
+                    return [];
+            }
+        },
+
+        removeRow(region, rowIndex) {
+            this.regions[region].splice(rowIndex, 1);
+            this.normalizeSortOrder();
+        },
+
+        moveRow(region, rowIndex, direction) {
+            const targetIndex = rowIndex + direction;
+            if (targetIndex < 0 || targetIndex >= this.regions[region].length) return;
+            [this.regions[region][rowIndex], this.regions[region][targetIndex]] = [this.regions[region][targetIndex], this.regions[region][rowIndex]];
+            this.normalizeSortOrder();
+        },
+
+        addColumn(region, rowIndex) {
+            const row = this.regions[region][rowIndex];
+            row.columns.push(this.createColumn(region, rowIndex, row.columns.length));
+            this.normalizeSortOrder();
+        },
+
+        applyColumnPreset(region, rowIndex, widths) {
+            const row = this.regions[region][rowIndex];
+            row.columns = widths.map((width, columnIndex) => ({
+                ...this.createColumn(region, rowIndex, columnIndex),
+                width,
+                responsive: { xs: width, sm: '', md: '', lg: '', xl: '' },
+            }));
+            this.normalizeSortOrder();
+        },
+
+        removeColumn(region, rowIndex, columnIndex) {
+            this.regions[region][rowIndex].columns.splice(columnIndex, 1);
+            this.normalizeSortOrder();
+        },
+
+        moveColumn(region, rowIndex, columnIndex, direction) {
+            const columns = this.regions[region][rowIndex].columns;
+            const targetIndex = columnIndex + direction;
+            if (targetIndex < 0 || targetIndex >= columns.length) return;
+            [columns[columnIndex], columns[targetIndex]] = [columns[targetIndex], columns[columnIndex]];
+            this.normalizeSortOrder();
+        },
+
+        openColumnSettings(region, rowIndex, columnIndex) {
+            this.columnSettingsTarget = { region, rowIndex, columnIndex };
+            this.columnSettingsTab = 'layout';
+            this.columnSettingsDraft = JSON.parse(JSON.stringify(this.regions?.[region]?.[rowIndex]?.columns?.[columnIndex] || null));
+            if (this.columnSettingsDraft) {
+                this.normalizeResponsive(this.columnSettingsDraft);
+                this.columnSettingsDraft.width = this.columnSettingsDraft.width === null || this.columnSettingsDraft.width === undefined
+                    ? ''
+                    : String(this.columnSettingsDraft.width);
+                ['sm', 'md', 'lg', 'xl'].forEach((key) => {
+                    this.columnSettingsDraft.responsive[key] = this.columnSettingsDraft.responsive[key] === null || this.columnSettingsDraft.responsive[key] === undefined || this.columnSettingsDraft.responsive[key] === ''
+                        ? ''
+                        : String(this.columnSettingsDraft.responsive[key]);
+                });
+            }
+            this.columnSettingsModalOpen = true;
+        },
+
+        closeColumnSettings() {
+            this.columnSettingsModalOpen = false;
+            this.columnSettingsTarget = null;
+            this.columnSettingsDraft = null;
+        },
+
+        saveColumnSettings() {
+            if (!this.columnSettingsTarget || !this.columnSettingsDraft) return;
+            const { region, rowIndex, columnIndex } = this.columnSettingsTarget;
+            this.normalizeResponsive(this.columnSettingsDraft);
+            this.regions[region][rowIndex].columns[columnIndex] = {
+                ...this.regions[region][rowIndex].columns[columnIndex],
+                ...JSON.parse(JSON.stringify(this.columnSettingsDraft)),
+            };
+            this.normalizeSortOrder();
+            this.closeColumnSettings();
+        },
+
+        get settingsColumn() {
+            return this.columnSettingsDraft;
+        },
+
+        openRowSettings(region, rowIndex) {
+            this.rowSettingsTarget = { region, rowIndex };
+            this.rowSettingsTab = 'layout';
+            this.rowSettingsDraft = JSON.parse(JSON.stringify(this.regions?.[region]?.[rowIndex] || null));
+            this.rowSettingsModalOpen = true;
+        },
+
+        closeRowSettings() {
+            this.rowSettingsModalOpen = false;
+            this.rowSettingsTarget = null;
+            this.rowSettingsDraft = null;
+        },
+
+        saveRowSettings() {
+            if (!this.rowSettingsTarget || !this.rowSettingsDraft) return;
+            const { region, rowIndex } = this.rowSettingsTarget;
+            this.regions[region][rowIndex] = {
+                ...this.regions[region][rowIndex],
+                ...JSON.parse(JSON.stringify(this.rowSettingsDraft)),
+            };
+            this.normalizeSortOrder();
+            this.closeRowSettings();
+        },
+
+        get settingsRow() {
+            return this.rowSettingsDraft;
+        },
+
+        addBlockByTemplate(region, rowIndex, columnIndex, templateId) {
+            const column = this.regions[region][rowIndex].columns[columnIndex];
+            const template = this.getTemplateById(templateId);
+            if (!template) return;
+            const isShellBlock = ['header', 'footer'].includes(String(template?.type || '').toLowerCase());
+
+            column.blocks.push(this.hydrateBlock({
+                id: `${template.type}_${column.blocks.length + 1}`,
+                type: template.type,
+                variation: template.variation,
+                render_mode: template.render_mode,
+                section_template_id: template.id,
+                template_name: template.name,
+                component_key: template.component_key || null,
+                schema: template.schema || {},
+                content: JSON.parse(JSON.stringify(template.default_content || {})),
+                is_active: true,
+                wrapper_tag: isShellBlock ? '' : null,
+            }, region, rowIndex, columnIndex, column.blocks.length));
+
+            this.normalizeSortOrder();
+        },
+
+        openBlockPicker(region, rowIndex, columnIndex) {
+            this.pickerTarget = { region, rowIndex, columnIndex };
+            this.pickerSearch = '';
+            this.pickerModalOpen = true;
+        },
+
+        closeBlockPicker() {
+            this.pickerModalOpen = false;
+            this.pickerSearch = '';
+            this.pickerTarget = null;
+        },
+
+        pickTemplate(templateId) {
+            if (!this.pickerTarget) return;
+            const { region, rowIndex, columnIndex } = this.pickerTarget;
+            this.addBlockByTemplate(region, rowIndex, columnIndex, templateId);
+            this.closeBlockPicker();
+        },
+
+        focusBlock(blockId) {
+            if (!blockId) return;
+
+            for (const region of this.regionNames) {
+                const rows = this.regions[region] || [];
+
+                for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+                    const row = rows[rowIndex];
+
+                    for (let columnIndex = 0; columnIndex < (row.columns || []).length; columnIndex += 1) {
+                        const column = row.columns[columnIndex];
+
+                        for (let blockIndex = 0; blockIndex < (column.blocks || []).length; blockIndex += 1) {
+                            const block = column.blocks[blockIndex];
+
+                            if (String(block.id) !== String(blockId)) {
+                                continue;
+                            }
+
+                            row._expanded = true;
+
+                            this.$nextTick(() => {
+                                const element = document.getElementById(`builder-block-${block.id}`);
+                                if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    element.classList.add('ring-2', 'ring-amber-300', 'ring-offset-2');
+                                    window.setTimeout(() => {
+                                        element.classList.remove('ring-2', 'ring-amber-300', 'ring-offset-2');
+                                    }, 1800);
+                                }
+
+                                this.openBlockSettings(region, rowIndex, columnIndex, blockIndex);
+                            });
+
+                            return;
+                        }
+                    }
+                }
+            }
+        },
+
+        openBlockSettings(region, rowIndex, columnIndex, blockIndex) {
+            this.settingsTarget = { region, rowIndex, columnIndex, blockIndex };
+            this.settingsTab = 'content';
+            this.settingsDraft = JSON.parse(JSON.stringify(this.regions?.[region]?.[rowIndex]?.columns?.[columnIndex]?.blocks?.[blockIndex] || null));
+            this.settingsModalOpen = true;
+        },
+
+        closeBlockSettings() {
+            this.settingsModalOpen = false;
+            this.settingsTarget = null;
+            this.settingsDraft = null;
+        },
+
+        saveBlockSettings() {
+            if (!this.settingsTarget || !this.settingsDraft) return;
+            const { region, rowIndex, columnIndex, blockIndex } = this.settingsTarget;
+            this.regions[region][rowIndex].columns[columnIndex].blocks[blockIndex] = {
+                ...this.regions[region][rowIndex].columns[columnIndex].blocks[blockIndex],
+                ...JSON.parse(JSON.stringify(this.settingsDraft)),
+            };
+            this.normalizeSortOrder();
+            this.closeBlockSettings();
+        },
+
+        get settingsBlock() {
+            return this.settingsDraft;
+        },
+
+        blockRenderedHtml(block) {
+            if (!block) return '';
+            const template = String(block.html_override || block.html_template || '').trim();
+            const rawPattern = new RegExp('\\{\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}\\}', 'g');
+            const safePattern = new RegExp('\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}', 'g');
+
+            if (!template) {
+                return '<div class="text-xs text-gray-500">Bu block için HTML template tanımlı değil.</div>';
+            }
+
+            return template.replace(rawPattern, (_match, key) => {
+                return String(block.content?.[key] ?? '');
+            }).replace(safePattern, (_match, key) => {
+                return this.escapeHtml(block.content?.[key] ?? '');
+            });
+        },
+
+        blockCodePreview(block) {
+            const wrapperTag = block?.wrapper_tag || '';
+            const classAttr = block?.css_class ? ` class="${block.css_class}"` : '';
+            const idAttr = block?.element_id ? ` id="${block.element_id}"` : '';
+            const styleAttr = block?.inline_style ? ` style="${block.inline_style}"` : '';
+            const extraAttr = block?.custom_attributes ? ` ${block.custom_attributes}` : '';
+            const inner = this.blockRenderedHtml(block);
+
+            if (!wrapperTag) {
+                return inner;
+            }
+
+            return `<${wrapperTag}${idAttr}${classAttr}${styleAttr}${extraAttr}>${inner}</${wrapperTag}>`;
+        },
+
+        rowPreview(row) {
+            if (!row) return '';
+            const wrapperTag = row.wrapper_tag || '';
+            const container = row.container || '';
+            const classValue = [container, row.css_class].filter(Boolean).join(' ');
+            const idAttr = row.element_id ? ` id="${row.element_id}"` : '';
+            const styleAttr = row.inline_style ? ` style="${row.inline_style}"` : '';
+            const extraAttr = row.custom_attributes ? ` ${row.custom_attributes}` : '';
+            const classAttr = classValue ? ` class="${classValue}"` : '';
+
+            if (!wrapperTag && !classAttr && !idAttr && !styleAttr && !extraAttr) {
+                return 'Row wrapper yok. Blocklar dogrudan render edilir.';
+            }
+
+            const tag = wrapperTag || 'div';
+
+            return `<${tag}${idAttr}${classAttr}${styleAttr}${extraAttr}>...</${tag}>`;
+        },
+
+        columnPreview(column) {
+            if (!column) return '';
+            const classes = [];
+            if (column?.responsive?.xs || column?.width) {
+                classes.push(this.columnClassLabel(column));
+            }
+            ['sm', 'md', 'lg', 'xl'].forEach((bp) => {
+                if (column?.responsive?.[bp]) {
+                    classes.push(`col-${bp}-${column.responsive[bp]}`);
+                }
+            });
+            if (column?.css_class) classes.push(column.css_class);
+            const idAttr = column?.element_id ? ` id="${column.element_id}"` : '';
+            const styleAttr = column?.inline_style ? ` style="${column.inline_style}"` : '';
+            const extraAttr = column?.custom_attributes ? ` ${column.custom_attributes}` : '';
+            const classAttr = classes.length ? ` class="${classes.join(' ')}"` : '';
+
+            if (!classAttr && !idAttr && !styleAttr && !extraAttr) {
+                return 'Column wrapper yok. Blocklar dogrudan render edilir.';
+            }
+
+            return `<div${idAttr}${classAttr}${styleAttr}${extraAttr}>...</div>`;
+        },
+
+        escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        },
+
+        removeBlock(region, rowIndex, columnIndex, blockIndex) {
+            this.regions[region][rowIndex].columns[columnIndex].blocks.splice(blockIndex, 1);
+            this.normalizeSortOrder();
+        },
+
+        duplicateBlock(region, rowIndex, columnIndex, blockIndex) {
+            const blocks = this.regions[region][rowIndex].columns[columnIndex].blocks;
+            const source = blocks[blockIndex];
+            if (!source) return;
+
+            const clone = JSON.parse(JSON.stringify(source));
+            clone._uid = this.generateUid('block');
+            clone.id = `${source.type || 'block'}_${blocks.length + 1}`;
+            blocks.splice(blockIndex + 1, 0, clone);
+            this.normalizeSortOrder();
+        },
+
+        moveBlock(region, rowIndex, columnIndex, blockIndex, direction) {
+            const blocks = this.regions[region][rowIndex].columns[columnIndex].blocks;
+            const targetIndex = blockIndex + direction;
+            if (targetIndex < 0 || targetIndex >= blocks.length) return;
+            [blocks[blockIndex], blocks[targetIndex]] = [blocks[targetIndex], blocks[blockIndex]];
+            this.normalizeSortOrder();
+        },
+
+        serializeRegions() {
+            const output = {
+                header: [],
+                body: [],
+                footer: [],
+            };
+
+            Object.keys(output).forEach((region) => {
+                output[region] = (this.regions[region] || []).map((row, rowIndex) => ({
+                    id: row.id || `row_${region}_${rowIndex + 1}`,
+                    type: 'row',
+                    is_active: row.is_active !== false,
+                    container: row.container || null,
+                    wrapper_tag: row.wrapper_tag || null,
+                    css_class: row.css_class || null,
+                    element_id: row.element_id || null,
+                    inline_style: row.inline_style || null,
+                    custom_attributes: row.custom_attributes || null,
+                    columns: (row.columns || []).map((column, columnIndex) => ({
+                        id: column.id || `col_${region}_${rowIndex + 1}_${columnIndex + 1}`,
+                        width: (column?.width !== '' && column?.width !== null && column?.width !== undefined)
+                            ? Number(column.width)
+                            : null,
+                        is_active: column.is_active !== false,
+                        responsive: {
+                            xs: (column?.width !== '' && column?.width !== null && column?.width !== undefined)
+                                ? Number(column.width)
+                                : null,
+                            sm: column?.responsive?.sm || null,
+                            md: column?.responsive?.md || null,
+                            lg: column?.responsive?.lg || null,
+                            xl: column?.responsive?.xl || null,
+                        },
+                        css_class: column.css_class || null,
+                        element_id: column.element_id || null,
+                        inline_style: column.inline_style || null,
+                        custom_attributes: column.custom_attributes || null,
+                        blocks: (column.blocks || []).map((block, blockIndex) => ({
+                            id: block.id || `block_${block.type || 'item'}_${blockIndex + 1}`,
+                            type: block.type,
+                            variation: block.variation,
+                            render_mode: block.render_mode,
+                            section_template_id: block.section_template_id,
+                            component_key: block.component_key,
+                            is_active: block.is_active !== false,
+                            sort_order: block.sort_order || (blockIndex + 1),
+                            content: block.content || {},
+                            wrapper_tag: block.wrapper_tag || null,
+                            css_class: block.css_class || null,
+                            element_id: block.element_id || null,
+                            inline_style: block.inline_style || null,
+                            custom_attributes: block.custom_attributes || null,
+                            html_override: block.html_override || null,
+                        })),
+                    })),
+                }));
+            });
+
+            return output;
+        },
+
+        normalizeSortOrder() {
+            this.regionNames.forEach((region) => {
+                (this.regions[region] || []).forEach((row, rowIndex) => {
+                    row.id = row.id || `row_${region}_${rowIndex + 1}`;
+                    row.container = row.container || '';
+                    row.wrapper_tag = row.wrapper_tag || '';
+                    row.css_class = row.css_class || '';
+                    row.element_id = row.element_id || '';
+                    row.inline_style = row.inline_style || '';
+                    row.custom_attributes = row.custom_attributes || '';
+
+                    (row.columns || []).forEach((column, columnIndex) => {
+                        column.id = column.id || `col_${region}_${rowIndex + 1}_${columnIndex + 1}`;
+                        this.normalizeResponsive(column);
+                        column.css_class = column.css_class || '';
+                        column.element_id = column.element_id || '';
+                        column.inline_style = column.inline_style || '';
+                        column.custom_attributes = column.custom_attributes || '';
+
+                        (column.blocks || []).forEach((block, blockIndex) => {
+                            block.sort_order = blockIndex + 1;
+                            block.wrapper_tag = block.wrapper_tag || '';
+                            block.css_class = block.css_class || '';
+                            block.element_id = block.element_id || '';
+                            block.inline_style = block.inline_style || '';
+                            block.custom_attributes = block.custom_attributes || '';
+                            block.html_override = block.html_override || '';
+                        });
+                    });
+                });
+            });
+        },
+    };
+}
+</script>
+@endpush

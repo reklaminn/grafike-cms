@@ -7,6 +7,13 @@ use Illuminate\Support\Facades\Cache;
 
 class PageObserver
 {
+    public function updating(Page $page): void
+    {
+        if ($page->isDirty('sections_json') || $page->isDirty('layout_json')) {
+            Page::recordSnapshot($page, 'pre-update');
+        }
+    }
+
     public function saved(Page $page): void
     {
         $this->clearPageCache($page);
