@@ -15,10 +15,12 @@ use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\RedirectController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SectionTemplateController;
 use App\Http\Controllers\Admin\SeoController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SitemapController;
 use App\Http\Controllers\Admin\SmtpProfileController;
+use App\Http\Controllers\Admin\ThemeController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\CurrencyController;
 use App\Http\Controllers\Admin\AiAssistantController;
@@ -38,6 +40,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Pages CRUD
         Route::resource('pages', PageController::class);
         Route::post('pages/reorder', [PageController::class, 'reorder'])->name('pages.reorder');
+        Route::post('pages/{page}/migrate-to-sections', [PageController::class, 'migrateToSections'])->name('pages.migrate-to-sections');
+        Route::get('pages/{page}/migrate-preview', [PageController::class, 'migratePreview'])->name('pages.migrate-preview');
+        Route::post('pages/{page}/revisions/{revision}/restore', [PageController::class, 'restoreRevision'])->name('pages.restore-revision');
 
         // Articles CRUD
         Route::resource('articles', ArticleController::class);
@@ -101,6 +106,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Design (CSS/JS Editor)
         Route::get('design', [DesignController::class, 'index'])->name('design.index');
         Route::put('design', [DesignController::class, 'update'])->name('design.update');
+        Route::resource('themes', ThemeController::class)->except('show');
+        Route::resource('section-templates', SectionTemplateController::class)->except('show');
 
         // SMTP Profiles
         Route::resource('smtp-profiles', SmtpProfileController::class)->except('show');
