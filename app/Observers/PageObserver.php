@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Page;
+use App\Models\PageRevision;
 use Illuminate\Support\Facades\Cache;
 
 class PageObserver
@@ -10,7 +11,18 @@ class PageObserver
     public function updating(Page $page): void
     {
         if ($page->isDirty('sections_json') || $page->isDirty('layout_json')) {
-            Page::recordSnapshot($page, 'pre-update');
+            // Use getOriginal() to capture the state BEFORE the update is written.
+            // $page->sections_json at this point already holds the new (dirty) value.
+            PageRevision::create([
+                'page_id'    => $page->id,
+                'admin_id'   => auth()->id(),
+                'snapshot'   => [
+                    'sections_json' => $page->getOriginal('sections_json'),
+                    'layout_json'   => $page->getOriginal('layout_json'),
+                ],
+                'reason'     => 'pre-update',
+                'created_at' => now(),
+            ]);
         }
     }
 

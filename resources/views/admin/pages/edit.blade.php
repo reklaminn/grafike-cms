@@ -7,23 +7,6 @@
 @endsection
 
 @section('content')
-    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="text-sm text-gray-500">
-            Legacy builder verisi varsa tek tıkla yeni Next.js builder yapısına dönüştürebilirsin.
-        </div>
-        @if(!empty($page->layout_json))
-            <form method="POST" action="{{ route('admin.pages.migrate-to-sections', $page) }}"
-                  onsubmit="return confirm('Bu sayfanın legacy layout verisi yeni builder yapısına dönüştürülsün mü? Mevcut sections_json üzerine yazılacaktır.')">
-                @csrf
-                <button type="submit"
-                        class="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
-                    <i class="fas fa-wand-magic-sparkles"></i>
-                    Yeni Builder'a Dönüştür
-                </button>
-            </form>
-        @endif
-    </div>
-
     @if($errors->any())
         <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
             <div class="flex items-center gap-2 font-semibold text-red-800 mb-2">
