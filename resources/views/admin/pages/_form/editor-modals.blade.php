@@ -209,42 +209,12 @@
 
                                                 <div class="grid gap-3 sm:grid-cols-2">
                                                     <template x-for="[itemFieldName, itemFieldSchema] in Object.entries(repeaterFieldSchema(fieldSchema))" :key="itemFieldName">
-                                                        <div :class="(itemFieldSchema.type || 'text') === 'textarea' ? 'sm:col-span-2' : ''">
-                                                            <label class="mb-1 block text-xs font-medium text-gray-600" x-text="fieldLabel(itemFieldName, itemFieldSchema)"></label>
-
-                                                            <template x-if="(itemFieldSchema.type || 'text') === 'textarea'">
-                                                                <textarea x-model="item[itemFieldName]"
-                                                                          rows="3"
-                                                                          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"></textarea>
-                                                            </template>
-
-                                                            <template x-if="(itemFieldSchema.type || 'text') === 'number'">
-                                                                <input type="number"
-                                                                       x-model="item[itemFieldName]"
-                                                                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                                            </template>
-
-                                                            <template x-if="(itemFieldSchema.type || 'text') === 'boolean'">
-                                                                <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                                                    <input type="checkbox" x-model="item[itemFieldName]" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
-                                                                    true / false
-                                                                </label>
-                                                            </template>
-
-                                                            <template x-if="(itemFieldSchema.type || 'text') === 'select'">
-                                                                <select x-model="item[itemFieldName]"
-                                                                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                                                    <template x-for="option in (Array.isArray(itemFieldSchema.options) ? itemFieldSchema.options : [])" :key="option">
-                                                                        <option :value="option" x-text="option"></option>
-                                                                    </template>
-                                                                </select>
-                                                            </template>
-
-                                                            <template x-if="!['textarea', 'number', 'boolean', 'select'].includes(itemFieldSchema.type || 'text')">
-                                                                <input type="text"
-                                                                       x-model="item[itemFieldName]"
-                                                                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                                            </template>
+                                                        <div :class="['textarea','rich-text','html'].includes(itemFieldSchema.type || 'text') ? 'sm:col-span-2' : ''">
+                                                            <label class="mb-1 block text-xs font-medium text-gray-600"
+                                                                   x-text="fieldLabel(itemFieldName, itemFieldSchema)"></label>
+                                                            <div x-data="blockFieldInput(item, itemFieldName, itemFieldSchema)">
+                                                                @include('admin.pages._form._field-types')
+                                                            </div>
                                                         </div>
                                                     </template>
                                                 </div>
@@ -261,41 +231,11 @@
 
                             <template x-if="(fieldSchema.type || 'text') !== 'repeater'">
                                 <div>
-                                    <label class="mb-1 block text-xs font-medium text-gray-600" x-text="fieldLabel(fieldName, fieldSchema)"></label>
-
-                                    <template x-if="(fieldSchema.type || 'text') === 'textarea'">
-                                        <textarea x-model="settingsBlock.content[fieldName]"
-                                                  rows="4"
-                                                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"></textarea>
-                                    </template>
-
-                                    <template x-if="(fieldSchema.type || 'text') === 'number'">
-                                        <input type="number"
-                                               x-model="settingsBlock.content[fieldName]"
-                                               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                    </template>
-
-                                    <template x-if="(fieldSchema.type || 'text') === 'boolean'">
-                                        <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                            <input type="checkbox" x-model="settingsBlock.content[fieldName]" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
-                                            true / false
-                                        </label>
-                                    </template>
-
-                                    <template x-if="(fieldSchema.type || 'text') === 'select'">
-                                        <select x-model="settingsBlock.content[fieldName]"
-                                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                            <template x-for="option in (Array.isArray(fieldSchema.options) ? fieldSchema.options : [])" :key="option">
-                                                <option :value="option" x-text="option"></option>
-                                            </template>
-                                        </select>
-                                    </template>
-
-                                    <template x-if="!['textarea', 'number', 'boolean', 'select'].includes(fieldSchema.type || 'text')">
-                                        <input type="text"
-                                               x-model="settingsBlock.content[fieldName]"
-                                               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                    </template>
+                                    <label class="mb-1 block text-xs font-medium text-gray-600"
+                                           x-text="fieldLabel(fieldName, fieldSchema)"></label>
+                                    <div x-data="blockFieldInput(settingsBlock.content, fieldName, fieldSchema)">
+                                        @include('admin.pages._form._field-types')
+                                    </div>
                                 </div>
                             </template>
                         </div>

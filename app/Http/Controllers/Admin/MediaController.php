@@ -37,6 +37,29 @@ class MediaController extends Controller
             $query->where('collection_name', $collection);
         }
 
+        $media = $query->paginate(48)->withQueryString();
+
+        // JSON response for picker / AJAX calls
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $media->getCollection()->map(fn ($m) => [
+                    'id'            => $m->id,
+                    'name'          => $m->name,
+                    'file_name'     => $m->file_name,
+                    'mime_type'     => $m->mime_type,
+                    'size'          => $m->size,
+                    'url'           => $m->getUrl(),
+                    'thumbnail_url' => str_starts_with($m->mime_type, 'image/') ? $m->getUrl() : null,
+                ]),
+                'meta' => [
+                    'total'        => $media->total(),
+                    'per_page'     => $media->perPage(),
+                    'current_page' => $media->currentPage(),
+                    'last_page'    => $media->lastPage(),
+                ],
+            ]);
+        }
+
         $media = $query->paginate(24)->withQueryString();
 
         // Get available collections for filter

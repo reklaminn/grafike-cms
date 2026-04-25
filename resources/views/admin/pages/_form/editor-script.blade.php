@@ -1,5 +1,135 @@
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css">
+<style>
+    /* Quill overrides inside the block settings modal */
+    .ql-toolbar { border: none !important; border-bottom: 1px solid #e5e7eb !important; background: #f9fafb; padding: 6px 8px !important; }
+    .ql-container { border: none !important; font-family: inherit; font-size: 0.875rem; }
+    .ql-editor { min-height: 110px; padding: 10px 12px; }
+    .ql-editor.ql-blank::before { color: #9ca3af; font-style: normal; }
+</style>
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+@endpush
+
 @push('scripts')
 <script>
+/**
+ * blockFieldInput(parentRef, fieldKey, fieldSchema)
+ *
+ * Reusable Alpine sub-component for rendering a single schema field.
+ * Intended to be used as:
+ *   <div x-data="blockFieldInput(parentRef, fieldKey, fieldSchema)">
+ *       @include('admin.pages._form._field-types')
+ *   </div>
+ *
+ * parentRef  — the reactive object that owns the value (e.g. block.content or repeater item)
+ * fieldKey   — the key inside parentRef to read/write
+ * fieldSchema — the field's schema object ({ type, label, options, ... })
+ */
+function blockFieldInput(parentRef, fieldKey, fieldSchema) {
+    return {
+        parentRef,
+        fieldKey,
+        fieldSchema,
+
+        // Media picker state
+        mediaPickerOpen: false,
+        mediaItems: [],
+        mediaSearch: '',
+        mediaLoading: false,
+
+        // Quill
+        quillInstance: null,
+
+        get type() {
+            return (this.fieldSchema?.type || 'text');
+        },
+
+        // ── Media picker ────────────────────────────────────────────────────
+        openMediaPicker() {
+            this.mediaPickerOpen = true;
+            this.mediaSearch = '';
+            if (!this.mediaItems.length) {
+                this.loadMedia();
+            }
+        },
+
+        closeMediaPicker() {
+            this.mediaPickerOpen = false;
+        },
+
+        async loadMedia() {
+            this.mediaLoading = true;
+            try {
+                const resp = await fetch('/admin/media?type=image&per_page=96', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                });
+                if (resp.ok) {
+                    const json = await resp.json();
+                    this.mediaItems = json.data || [];
+                }
+            } catch (e) {
+                console.error('[blockFieldInput] Media load error:', e);
+            } finally {
+                this.mediaLoading = false;
+            }
+        },
+
+        filteredMedia() {
+            if (!this.mediaSearch) return this.mediaItems;
+            const q = this.mediaSearch.toLowerCase();
+            return this.mediaItems.filter((m) =>
+                (m.file_name || m.name || '').toLowerCase().includes(q)
+            );
+        },
+
+        selectMedia(item) {
+            this.parentRef[this.fieldKey] = item.url || item.original_url || '';
+            this.closeMediaPicker();
+        },
+
+        // ── Quill rich-text ─────────────────────────────────────────────────
+        initQuill(el) {
+            if (!el || this.quillInstance) return;
+            if (typeof Quill === 'undefined') {
+                console.warn('[blockFieldInput] Quill not loaded');
+                return;
+            }
+
+            this.quillInstance = new Quill(el, {
+                theme: 'snow',
+                placeholder: 'İçerik girin…',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ header: [2, 3, false] }],
+                        [{ list: 'ordered' }, { list: 'bullet' }],
+                        ['link', 'clean'],
+                    ],
+                },
+            });
+
+            // Set initial HTML
+            const initial = this.parentRef[this.fieldKey];
+            if (initial) {
+                this.quillInstance.root.innerHTML = initial;
+            }
+
+            // Sync changes back to data
+            const pk = this.fieldKey;
+            const pr = this.parentRef;
+            this.quillInstance.on('text-change', () => {
+                pr[pk] = this.quillInstance.root.innerHTML;
+            });
+        },
+    };
+}
+
 function frontendSectionEditor({ initialRegions = null, availableTemplates = [] }) {
     return {
         regions: { header: [], body: [], footer: [] },
