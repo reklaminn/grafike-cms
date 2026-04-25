@@ -1,154 +1,176 @@
-# ═══════════════════════════════════════════════
-# Grafike CMS - Docker Compose
-# ═══════════════════════════════════════════════
-# Usage:
-#   Development: docker compose up -d
-#   Production:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
 services:
-  # ─── Application ─────────────────────────────
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: grafike-cms
+    container_name: ${APP_CONTAINER_NAME:-grafike_cms_app}
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-8080}:80"
+    env_file:
+      - .env.hostinger
     environment:
-      - APP_ENV=${APP_ENV:-production}
-      - APP_DEBUG=${APP_DEBUG:-false}
-      - DB_CONNECTION=mysql
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-grafike_cms}
-      - DB_USERNAME=${DB_USERNAME:-grafike}
-      - DB_PASSWORD=${DB_PASSWORD:-secret}
-      - CACHE_STORE=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-      - REDIS_HOST=redis
-    volumes:
-      - storage_data:/var/www/html/storage/app
-      - storage_logs:/var/www/html/storage/logs
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - grafike
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL}
+      APP_KEY: ${APP_KEY}
 
-  # ─── Queue Worker ────────────────────────────
+      DB_CONNECTION: mariadb
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@example.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Grafike CMS}
+
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-}
+      SESSION_SECURE_COOKIE: "true"
+      SESSION_SAME_SITE: lax
+
+      CMS_CACHE_ENABLED: ${CMS_CACHE_ENABLED:-true}
+      CMS_CACHE_TTL: ${CMS_CACHE_TTL:-600}
+
+    depends_on:
+      redis:
+        condition: service_started
+
+    volumes:
+      - grafike_storage_app:/var/www/html/storage/app
+      - grafike_storage_logs:/var/www/html/storage/logs
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      - "traefik.http.routers.grafike.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.grafike.entrypoints=websecure"
+      - "traefik.http.routers.grafike.tls=true"
+      - "traefik.http.routers.grafike.tls.certresolver=mytlschallenge"
+
+      - "traefik.http.services.grafike.loadbalancer.server.port=80"
+
+      - "traefik.http.middlewares.grafike-headers.headers.SSLRedirect=true"
+      - "traefik.http.middlewares.grafike-headers.headers.STSSeconds=315360000"
+      - "traefik.http.middlewares.grafike-headers.headers.browserXSSFilter=true"
+      - "traefik.http.middlewares.grafike-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.grafike-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.grafike-headers.headers.SSLHost=${APP_DOMAIN}"
+      - "traefik.http.middlewares.grafike-headers.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.grafike-headers.headers.STSPreload=true"
+
+      - "traefik.http.routers.grafike.middlewares=grafike-headers@docker"
+
+    networks:
+      - app_net
+      - traefik_proxy
+
   queue:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: grafike-queue
+    container_name: ${QUEUE_CONTAINER_NAME:-grafike_cms_queue}
     restart: unless-stopped
     command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    env_file:
+      - .env.hostinger
     environment:
-      - APP_ENV=${APP_ENV:-production}
-      - DB_CONNECTION=mysql
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-grafike_cms}
-      - DB_USERNAME=${DB_USERNAME:-grafike}
-      - DB_PASSWORD=${DB_PASSWORD:-secret}
-      - CACHE_STORE=redis
-      - REDIS_HOST=redis
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - grafike
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL}
+      APP_KEY: ${APP_KEY}
 
-  # ─── Scheduler ───────────────────────────────
+      DB_CONNECTION: mariadb
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
+    depends_on:
+      redis:
+        condition: service_started
+
+    networks:
+      - app_net
+
   scheduler:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: grafike-scheduler
+    container_name: ${SCHEDULER_CONTAINER_NAME:-grafike_cms_scheduler}
     restart: unless-stopped
-    command: >
-      sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    env_file:
+      - .env.hostinger
     environment:
-      - APP_ENV=${APP_ENV:-production}
-      - DB_CONNECTION=mysql
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_DATABASE=${DB_DATABASE:-grafike_cms}
-      - DB_USERNAME=${DB_USERNAME:-grafike}
-      - DB_PASSWORD=${DB_PASSWORD:-secret}
-      - CACHE_STORE=redis
-      - REDIS_HOST=redis
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL}
+      APP_KEY: ${APP_KEY}
+
+      DB_CONNECTION: mariadb
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
-        condition: service_healthy
-    networks:
-      - grafike
+        condition: service_started
 
-  # ─── MySQL ───────────────────────────────────
-  mysql:
-    image: mysql:8.0
-    container_name: grafike-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
-      MYSQL_DATABASE: ${DB_DATABASE:-grafike_cms}
-      MYSQL_USER: ${DB_USERNAME:-grafike}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
-    ports:
-      - "${DB_PORT:-3306}:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --default-authentication-plugin=caching_sha2_password
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
-      - grafike
+      - app_net
 
-  # ─── Redis ───────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: grafike-redis
+    container_name: ${REDIS_CONTAINER_NAME:-grafike_cms_redis}
     restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - grafike_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - grafike
+      - app_net
 
-# ─── Volumes ─────────────────────────────────────
 volumes:
-  mysql_data:
-    driver: local
-  redis_data:
-    driver: local
-  storage_data:
-    driver: local
-  storage_logs:
-    driver: local
+  grafike_storage_app:
+  grafike_storage_logs:
+  grafike_redis_data:
 
-# ─── Networks ────────────────────────────────────
 networks:
-  grafike:
+  app_net:
     driver: bridge
+  traefik_proxy:
+    external: true
