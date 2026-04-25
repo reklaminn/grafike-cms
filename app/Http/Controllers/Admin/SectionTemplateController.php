@@ -8,6 +8,7 @@ use App\Models\Menu;
 use App\Models\SectionTemplate;
 use App\Models\SiteSetting;
 use App\Models\Theme;
+use App\Services\SectionTemplate\SectionTemplateRenderer;
 use App\Support\FrontendSections;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -184,6 +185,35 @@ class SectionTemplateController extends Controller
         return redirect()
             ->route('admin.section-templates.index')
             ->with('success', 'Block şablonu silindi.');
+    }
+
+    public function preview(Request $request, SectionTemplate $sectionTemplate): mixed
+    {
+        $renderer = app(SectionTemplateRenderer::class);
+
+        if ($request->isMethod('POST')) {
+            // Live preview: caller posts current html_template + content override
+            $htmlTemplate = $request->input('html_template');
+            $content      = $request->input('content', []);
+
+            if (is_string($content)) {
+                $content = json_decode($content, true) ?? [];
+            }
+
+            $clone = clone $sectionTemplate;
+            $clone->html_template        = $htmlTemplate;
+            $clone->default_content_json = $content;
+
+            return response($renderer->render($clone))
+                ->header('Content-Type', 'text/html; charset=utf-8')
+                ->header('X-Frame-Options', 'SAMEORIGIN');
+        }
+
+        $rendered = $renderer->render($sectionTemplate);
+        $theme    = $sectionTemplate->theme;
+
+        return response()->view('admin.section-templates.preview', compact('sectionTemplate', 'rendered', 'theme'))
+            ->header('X-Frame-Options', 'SAMEORIGIN');
     }
 
     public function menuPlaceholders(): \Illuminate\Http\JsonResponse

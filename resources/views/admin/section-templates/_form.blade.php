@@ -24,6 +24,7 @@
     </div>
     <div class="space-y-6">
         @if(isset($sectionTemplate) && $sectionTemplate->exists)
+            @include('admin.section-templates._form.sidebar.preview')
             @include('admin.section-templates._form.sidebar.usage')
         @endif
         @include('admin.section-templates._form.sidebar.docs')

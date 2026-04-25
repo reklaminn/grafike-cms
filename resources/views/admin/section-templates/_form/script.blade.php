@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cmEditor.on('change', () => {
             rawTextarea.value = cmEditor.getValue();
             updateSchemaDiff();
+            window.dispatchEvent(new CustomEvent('section-template-editor-change'));
         });
     }
 
@@ -108,6 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
     ].filter(Boolean);
 
     let repeatCandidates = [];
+
+    // dispatch change event so preview panel can react
+    if (defaultContentInput) {
+        defaultContentInput.addEventListener('input', () => {
+            window.dispatchEvent(new CustomEvent('section-template-editor-change'));
+        });
+    }
+
+    // expose helpers globally for preview panel
+    window.getHtmlValue = getHtmlValue;
 
     // ────────────────────────────────────────────────────
     // Helpers
