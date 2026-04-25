@@ -67,11 +67,14 @@
                    list="component_key_suggestions"
                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-indigo-500">
             <datalist id="component_key_suggestions">
-                @foreach($legacyModuleOptions as $key => $label)
-                    <option value="{{ $key }}">{{ $label }}</option>
+                @foreach($componentKeyOptions as $option)
+                    <option value="{{ $option['key'] }}">{{ $option['label'] }} ({{ $option['type'] }})</option>
                 @endforeach
             </datalist>
-            <p class="mt-1 text-xs text-gray-500">Sadece <code>component</code> modunda kullanılır. Next.js component anahtarıdır.</p>
+            <p class="mt-1 text-xs text-gray-500">
+                Sadece <code>component</code> modunda kullanılır. Next.js component anahtarıdır.
+                Seçenekler <code>apps/frontend/public/component-manifest.json</code>'dan gelir.
+            </p>
         </div>
         <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">Önizleme Görseli</label>

@@ -1,0 +1,14 @@
+[
+  {
+    "key": "sections/html-section",
+    "label": "HTML Section (generic)",
+    "type": "generic",
+    "description": "Renders any HTML template from the CMS"
+  },
+  {
+    "key": "sections/section-renderer",
+    "label": "Section Renderer",
+    "type": "generic",
+    "description": "Dynamic section renderer dispatching to registered components"
+  }
+]

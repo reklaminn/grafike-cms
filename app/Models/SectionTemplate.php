@@ -52,6 +52,24 @@ class SectionTemplate extends Model implements HasMedia
         return $this->belongsTo(Theme::class);
     }
 
+    public function versions()
+    {
+        return $this->hasMany(SectionTemplateVersion::class)->orderByDesc('created_at');
+    }
+
+    public function recordVersion(string $reason = 'manual', ?string $label = null): SectionTemplateVersion
+    {
+        return $this->versions()->create([
+            'admin_id'            => auth('admin')->id(),
+            'label'               => $label,
+            'html_template'       => $this->html_template,
+            'schema_json'         => $this->schema_json,
+            'default_content_json'=> $this->default_content_json,
+            'reason'              => $reason,
+            'created_at'          => now(),
+        ]);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

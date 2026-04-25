@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SectionTemplateRequest;
 use App\Models\Menu;
 use App\Models\SectionTemplate;
+use App\Models\SectionTemplateVersion;
 use App\Models\SiteSetting;
 use App\Models\Theme;
 use App\Services\SectionTemplate\SectionTemplateRenderer;
@@ -154,6 +155,20 @@ class SectionTemplateController extends Controller
 
     public function update(SectionTemplateRequest $request, SectionTemplate $sectionTemplate)
     {
+        // Snapshot before overwrite if html_template or schema changed
+        $dirty = array_intersect(
+            array_keys($request->validated()),
+            ['html_template', 'schema_json', 'default_content_json']
+        );
+        if (! empty($dirty)) {
+            $sectionTemplate->recordVersion('pre-update');
+            // Prune versions beyond 30 most recent
+            if ($sectionTemplate->versions()->count() > 30) {
+                $keepIds = $sectionTemplate->versions()->limit(30)->pluck('id');
+                $sectionTemplate->versions()->whereNotIn('id', $keepIds)->delete();
+            }
+        }
+
         $sectionTemplate->update($request->validated());
 
         if ($request->hasFile('preview_image')) {
@@ -166,6 +181,43 @@ class SectionTemplateController extends Controller
         return redirect()
             ->route('admin.section-templates.edit', $sectionTemplate)
             ->with('success', 'Block şablonu güncellendi.');
+    }
+
+    public function versions(SectionTemplate $sectionTemplate)
+    {
+        $versions = $sectionTemplate->versions()->limit(50)->get();
+
+        return response()->json($versions->map(fn (SectionTemplateVersion $v) => [
+            'id'         => $v->id,
+            'label'      => $v->label,
+            'reason'     => $v->reason,
+            'created_at' => $v->created_at?->format('d.m.Y H:i'),
+            'admin'      => $v->admin?->name,
+        ]));
+    }
+
+    public function saveVersion(Request $request, SectionTemplate $sectionTemplate)
+    {
+        $label = $request->input('label');
+        $sectionTemplate->recordVersion('manual', $label ?: null);
+
+        return back()->with('success', 'Versiyon kaydedildi.');
+    }
+
+    public function restoreVersion(SectionTemplate $sectionTemplate, SectionTemplateVersion $version)
+    {
+        // Snapshot current before restore
+        $sectionTemplate->recordVersion('pre-restore');
+
+        $sectionTemplate->update([
+            'html_template'        => $version->html_template,
+            'schema_json'          => $version->schema_json,
+            'default_content_json' => $version->default_content_json,
+        ]);
+
+        return redirect()
+            ->route('admin.section-templates.edit', $sectionTemplate)
+            ->with('success', 'Versiyon geri yüklendi.');
     }
 
     public function duplicate(SectionTemplate $sectionTemplate)
@@ -264,11 +316,12 @@ class SectionTemplateController extends Controller
         $menuPlaceholders = $this->buildMenuPlaceholders();
         $systemPlaceholders = $this->buildSystemPlaceholders();
         $legacyModuleOptions = $this->buildLegacyModuleOptions();
+        $componentKeyOptions = $this->buildComponentKeyOptions();
         $usagePages = $sectionTemplate->exists
             ? array_values($this->computeUsageMap()[$sectionTemplate->id] ?? [])
             : [];
 
-        return compact('sectionTemplate', 'themes', 'typeOptions', 'variationOptions', 'menuPlaceholders', 'systemPlaceholders', 'legacyModuleOptions', 'usagePages');
+        return compact('sectionTemplate', 'themes', 'typeOptions', 'variationOptions', 'menuPlaceholders', 'systemPlaceholders', 'legacyModuleOptions', 'componentKeyOptions', 'usagePages');
     }
 
     /**
@@ -286,6 +339,22 @@ class SectionTemplateController extends Controller
                 $class => str($class)->replaceLast('Module', '')->headline()->value(),
             ])
             ->all();
+    }
+
+    /**
+     * @return array<int, array{key: string, label: string, type: string}>
+     */
+    private function buildComponentKeyOptions(): array
+    {
+        $manifestPath = base_path('apps/frontend/public/component-manifest.json');
+
+        if (! file_exists($manifestPath)) {
+            return [];
+        }
+
+        $decoded = json_decode(file_get_contents($manifestPath), true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     /**

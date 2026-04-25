@@ -111,6 +111,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::match(['GET', 'POST'], 'section-templates/{section_template}/preview', [SectionTemplateController::class, 'preview'])->name('section-templates.preview');
         Route::post('section-templates/{section_template}/restore', [SectionTemplateController::class, 'restore'])->name('section-templates.restore')->withTrashed();
         Route::delete('section-templates/{section_template}/force-delete', [SectionTemplateController::class, 'forceDelete'])->name('section-templates.force-delete')->withTrashed();
+        Route::get('section-templates/{section_template}/versions', [SectionTemplateController::class, 'versions'])->name('section-templates.versions');
+        Route::post('section-templates/{section_template}/save-version', [SectionTemplateController::class, 'saveVersion'])->name('section-templates.save-version');
+        Route::post('section-templates/{section_template}/versions/{version}/restore', [SectionTemplateController::class, 'restoreVersion'])->name('section-templates.restore-version');
         Route::resource('section-templates', SectionTemplateController::class)->except('show');
         Route::post('section-templates/{section_template}/duplicate', [SectionTemplateController::class, 'duplicate'])->name('section-templates.duplicate');
 
