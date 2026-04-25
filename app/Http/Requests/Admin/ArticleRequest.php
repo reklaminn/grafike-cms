@@ -35,9 +35,14 @@ class ArticleRequest extends FormRequest
             'form_id' => ['nullable', 'exists:forms,id'],
             'is_featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'display_date' => ['nullable', 'string', 'max:100'],
+            'listing_variant' => ['nullable', 'string', 'max:100'],
+            'detail_variant' => ['nullable', 'string', 'max:100'],
+            'author_id' => ['nullable', 'exists:admins,id'],
             'custom_css' => ['nullable', 'string'],
             'custom_js' => ['nullable', 'string'],
             'cover_image' => ['nullable', 'image', 'max:5120'],
+            'gallery_images.*' => ['nullable', 'image', 'max:5120'],
 
             // SEO fields
             'seo_title' => ['nullable', 'string', 'max:255'],

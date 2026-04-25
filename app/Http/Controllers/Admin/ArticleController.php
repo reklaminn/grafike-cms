@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ArticleRequest;
+use App\Models\Admin;
 use App\Models\Article;
 use App\Models\Form;
 use App\Models\Language;
@@ -33,21 +34,26 @@ class ArticleController extends Controller
             $query->where('language_id', $langId);
         }
 
-        $articles = $query->latest('updated_at')->paginate(25);
+        if ($request->filled('is_featured')) {
+            $query->where('is_featured', (bool) $request->input('is_featured'));
+        }
+
+        $articles  = $query->latest('updated_at')->paginate(25);
         $languages = Language::where('is_active', true)->get();
-        $pages = Page::orderBy('title')->get(['id', 'title']);
+        $pages     = Page::orderBy('title')->get(['id', 'title']);
 
         return view('admin.articles.index', compact('articles', 'languages', 'pages'));
     }
 
     public function create(Request $request)
     {
-        $languages = Language::where('is_active', true)->get();
-        $pages = Page::orderBy('title')->get(['id', 'title']);
-        $forms = Form::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $languages      = Language::where('is_active', true)->get();
+        $pages          = Page::orderBy('title')->get(['id', 'title']);
+        $forms          = Form::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $admins         = Admin::orderBy('name')->get(['id', 'name']);
         $selectedPageId = $request->input('page_id');
 
-        return view('admin.articles.create', compact('languages', 'pages', 'forms', 'selectedPageId'));
+        return view('admin.articles.create', compact('languages', 'pages', 'forms', 'admins', 'selectedPageId'));
     }
 
     public function store(ArticleRequest $request)
@@ -72,6 +78,12 @@ class ArticleController extends Controller
                 ->toMediaCollection('cover');
         }
 
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $image) {
+                $article->addMedia($image)->toMediaCollection('gallery');
+            }
+        }
+
         // Handle SEO
         $this->saveSeo($article, $request);
 
@@ -85,10 +97,11 @@ class ArticleController extends Controller
         $article->load(['page', 'language', 'seo', 'media', 'form']);
 
         $languages = Language::where('is_active', true)->get();
-        $pages = Page::orderBy('title')->get(['id', 'title']);
-        $forms = Form::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $pages     = Page::orderBy('title')->get(['id', 'title']);
+        $forms     = Form::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $admins    = Admin::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.articles.edit', compact('article', 'languages', 'pages', 'forms'));
+        return view('admin.articles.edit', compact('article', 'languages', 'pages', 'forms', 'admins'));
     }
 
     public function update(ArticleRequest $request, Article $article)
@@ -109,11 +122,26 @@ class ArticleController extends Controller
                 ->toMediaCollection('cover');
         }
 
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $image) {
+                $article->addMedia($image)->toMediaCollection('gallery');
+            }
+        }
+
         $this->saveSeo($article, $request);
 
         return redirect()
             ->route('admin.articles.edit', $article)
             ->with('success', 'Yazı başarıyla güncellendi.');
+    }
+
+    public function destroyCover(Article $article)
+    {
+        $article->clearMediaCollection('cover');
+
+        return redirect()
+            ->route('admin.articles.edit', $article)
+            ->with('success', 'Kapak görseli kaldırıldı.');
     }
 
     public function destroy(Article $article)

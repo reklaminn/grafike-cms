@@ -46,6 +46,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Articles CRUD
         Route::resource('articles', ArticleController::class);
+        Route::delete('articles/{article}/cover', [ArticleController::class, 'destroyCover'])->name('articles.cover-destroy');
 
         // Menus CRUD
         Route::resource('menus', MenuController::class);
