@@ -1,5 +1,115 @@
 {{-- Block / Row / Column settings modals — lives inside frontendSectionEditor() Alpine scope --}}
 
+{{-- ── Block Picker Modal ──────────────────────────────────────────────── --}}
+<div x-show="pickerModalOpen" x-cloak
+     class="fixed inset-0 z-[80] flex items-start justify-center bg-black/60 px-4 pt-12 pb-8"
+     @click.self="closeBlockPicker()"
+     @keydown.escape.window="closeBlockPicker()">
+    <div class="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+         style="max-height: calc(100vh - 5rem)">
+
+        {{-- Header --}}
+        <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+            <div class="flex-1">
+                <h4 class="text-base font-semibold text-gray-900">Block Seç</h4>
+                <p class="mt-0.5 text-xs text-gray-500">
+                    Sayfaya eklenecek block şablonunu seç
+                </p>
+            </div>
+            <button type="button" @click="closeBlockPicker()"
+                    class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                <i class="fas fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        {{-- Search --}}
+        <div class="border-b border-gray-100 px-4 py-3">
+            <div class="relative">
+                <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text"
+                       x-model="pickerSearch"
+                       x-ref="pickerSearchInput"
+                       placeholder="Block ara (ad, type, variation)…"
+                       @keydown.escape.stop="pickerSearch ? pickerSearch = '' : closeBlockPicker()"
+                       class="w-full rounded-lg border border-gray-300 py-2 pl-8 pr-3 text-sm focus:border-transparent focus:ring-2 focus:ring-indigo-500">
+            </div>
+        </div>
+
+        {{-- Template list --}}
+        <div class="flex-1 overflow-y-auto p-4">
+
+            {{-- Group by type --}}
+            <template x-if="getFilteredTemplates(pickerSearch).length > 0">
+                <div class="space-y-4">
+                    <template x-for="typeGroup in groupedTemplates(pickerSearch)" :key="typeGroup.type">
+                        <div>
+                            <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400"
+                               x-text="typeGroup.label || typeGroup.type"></p>
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                <template x-for="template in typeGroup.templates" :key="template.id">
+                                    <button type="button"
+                                            @click="pickTemplate(template.id)"
+                                            class="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50">
+                                        {{-- Thumbnail or icon --}}
+                                        <template x-if="template.preview_image_url">
+                                            <img :src="template.preview_image_url"
+                                                 class="mt-0.5 h-10 w-14 shrink-0 rounded-lg object-cover border border-gray-200">
+                                        </template>
+                                        <template x-if="!template.preview_image_url">
+                                            <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400 group-hover:bg-indigo-100 group-hover:text-indigo-600">
+                                                <i class="fas text-sm"
+                                                   :class="{
+                                                       'fa-image': ['hero','hero-banner','slider'].includes(template.type),
+                                                       'fa-bars': template.type === 'header',
+                                                       'fa-grip-lines': template.type === 'footer',
+                                                       'fa-align-left': ['rich-text','content-block'].includes(template.type),
+                                                       'fa-newspaper': template.type === 'article-list',
+                                                       'fa-star': template.type === 'features',
+                                                       'fa-bullhorn': template.type === 'cta',
+                                                       'fa-images': template.type === 'gallery',
+                                                       'fa-quote-left': template.type === 'testimonials',
+                                                       'fa-id-card': template.type === 'cards',
+                                                       'fa-play-circle': template.type === 'video-embed',
+                                                       'fa-heading': template.type === 'page-header',
+                                                       'fa-cubes': !['hero','hero-banner','slider','header','footer','rich-text','content-block','article-list','features','cta','gallery','testimonials','cards','video-embed','page-header'].includes(template.type),
+                                                   }"></i>
+                                            </div>
+                                        </template>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700"
+                                               x-text="template.name"></p>
+                                            <div class="mt-1 flex flex-wrap gap-1">
+                                                <span class="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                                      :class="template.render_mode === 'component' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+                                                      x-text="template.render_mode"></span>
+                                                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600"
+                                                      x-text="template.variation"></span>
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-arrow-right mt-2 shrink-0 text-[10px] text-gray-300 group-hover:text-indigo-400"></i>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            {{-- Empty state --}}
+            <template x-if="getFilteredTemplates(pickerSearch).length === 0">
+                <div class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center">
+                    <i class="fas fa-magnifying-glass mb-3 text-2xl text-gray-300"></i>
+                    <p class="text-sm text-gray-400">
+                        "<span x-text="pickerSearch"></span>" için şablon bulunamadı.
+                    </p>
+                    <button type="button" @click="pickerSearch = ''"
+                            class="mt-3 text-xs text-indigo-600 hover:underline">Aramayı temizle</button>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
 <div x-show="settingsModalOpen" x-cloak
      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4"
      @click.self="closeBlockSettings()">
@@ -47,40 +157,146 @@
                 <div x-show="settingsTab === 'content'" class="grid gap-3">
                     <template x-for="[fieldName, fieldSchema] in Object.entries(settingsBlock.schema || {})" :key="fieldName">
                         <div>
-                            <label class="mb-1 block text-xs font-medium text-gray-600" x-text="fieldName"></label>
+                            <template x-if="(fieldSchema.type || 'text') === 'repeater'">
+                                <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-3"
+                                     x-init="ensureRepeaterContent(settingsBlock, fieldName)">
+                                    <div class="flex flex-wrap items-center justify-between gap-3">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-amber-900" x-text="fieldLabel(fieldName, fieldSchema)"></label>
+                                            <p class="mt-1 text-xs text-amber-700">
+                                                <span x-text="(settingsBlock.content[fieldName] || []).length"></span> item
+                                            </p>
+                                        </div>
+                                        <button type="button"
+                                                @click="addRepeaterItem(settingsBlock, fieldName, fieldSchema)"
+                                                class="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700">
+                                            <i class="fas fa-plus mr-1"></i> Item Ekle
+                                        </button>
+                                    </div>
 
-                            <template x-if="(fieldSchema.type || 'text') === 'textarea'">
-                                <textarea x-model="settingsBlock.content[fieldName]"
-                                          rows="4"
-                                          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"></textarea>
+                                    <div class="mt-3 space-y-3">
+                                        <template x-for="(item, itemIndex) in settingsBlock.content[fieldName]" :key="item._uid || itemIndex">
+                                            <div class="rounded-lg border border-amber-200 bg-white p-3">
+                                                <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 pb-2">
+                                                    <div class="text-xs font-semibold text-gray-700">
+                                                        Item #<span x-text="itemIndex + 1"></span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1">
+                                                        <button type="button"
+                                                                @click="moveRepeaterItem(settingsBlock, fieldName, itemIndex, -1)"
+                                                                :disabled="itemIndex === 0"
+                                                                class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40">
+                                                            <i class="fas fa-arrow-up"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                                @click="moveRepeaterItem(settingsBlock, fieldName, itemIndex, 1)"
+                                                                :disabled="itemIndex >= (settingsBlock.content[fieldName] || []).length - 1"
+                                                                class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40">
+                                                            <i class="fas fa-arrow-down"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                                @click="duplicateRepeaterItem(settingsBlock, fieldName, itemIndex)"
+                                                                class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200">
+                                                            <i class="fas fa-copy"></i>
+                                                        </button>
+                                                        <button type="button"
+                                                                @click="removeRepeaterItem(settingsBlock, fieldName, itemIndex)"
+                                                                class="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div class="grid gap-3 sm:grid-cols-2">
+                                                    <template x-for="[itemFieldName, itemFieldSchema] in Object.entries(repeaterFieldSchema(fieldSchema))" :key="itemFieldName">
+                                                        <div :class="(itemFieldSchema.type || 'text') === 'textarea' ? 'sm:col-span-2' : ''">
+                                                            <label class="mb-1 block text-xs font-medium text-gray-600" x-text="fieldLabel(itemFieldName, itemFieldSchema)"></label>
+
+                                                            <template x-if="(itemFieldSchema.type || 'text') === 'textarea'">
+                                                                <textarea x-model="item[itemFieldName]"
+                                                                          rows="3"
+                                                                          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"></textarea>
+                                                            </template>
+
+                                                            <template x-if="(itemFieldSchema.type || 'text') === 'number'">
+                                                                <input type="number"
+                                                                       x-model="item[itemFieldName]"
+                                                                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                                            </template>
+
+                                                            <template x-if="(itemFieldSchema.type || 'text') === 'boolean'">
+                                                                <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                                                                    <input type="checkbox" x-model="item[itemFieldName]" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                                                                    true / false
+                                                                </label>
+                                                            </template>
+
+                                                            <template x-if="(itemFieldSchema.type || 'text') === 'select'">
+                                                                <select x-model="item[itemFieldName]"
+                                                                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                                                    <template x-for="option in (Array.isArray(itemFieldSchema.options) ? itemFieldSchema.options : [])" :key="option">
+                                                                        <option :value="option" x-text="option"></option>
+                                                                    </template>
+                                                                </select>
+                                                            </template>
+
+                                                            <template x-if="!['textarea', 'number', 'boolean', 'select'].includes(itemFieldSchema.type || 'text')">
+                                                                <input type="text"
+                                                                       x-model="item[itemFieldName]"
+                                                                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <div x-show="(settingsBlock.content[fieldName] || []).length === 0"
+                                             class="rounded-lg border border-dashed border-amber-300 bg-white px-3 py-4 text-center text-xs text-amber-700">
+                                            Bu repeater alanında item yok.
+                                        </div>
+                                    </div>
+                                </div>
                             </template>
 
-                            <template x-if="(fieldSchema.type || 'text') === 'number'">
-                                <input type="number"
-                                       x-model="settingsBlock.content[fieldName]"
-                                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                            </template>
+                            <template x-if="(fieldSchema.type || 'text') !== 'repeater'">
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-gray-600" x-text="fieldLabel(fieldName, fieldSchema)"></label>
 
-                            <template x-if="(fieldSchema.type || 'text') === 'boolean'">
-                                <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                    <input type="checkbox" x-model="settingsBlock.content[fieldName]" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
-                                    true / false
-                                </label>
-                            </template>
-
-                            <template x-if="(fieldSchema.type || 'text') === 'select'">
-                                <select x-model="settingsBlock.content[fieldName]"
-                                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
-                                    <template x-for="option in (Array.isArray(fieldSchema.options) ? fieldSchema.options : [])" :key="option">
-                                        <option :value="option" x-text="option"></option>
+                                    <template x-if="(fieldSchema.type || 'text') === 'textarea'">
+                                        <textarea x-model="settingsBlock.content[fieldName]"
+                                                  rows="4"
+                                                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"></textarea>
                                     </template>
-                                </select>
-                            </template>
 
-                            <template x-if="!['textarea', 'number', 'boolean', 'select'].includes(fieldSchema.type || 'text')">
-                                <input type="text"
-                                       x-model="settingsBlock.content[fieldName]"
-                                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                    <template x-if="(fieldSchema.type || 'text') === 'number'">
+                                        <input type="number"
+                                               x-model="settingsBlock.content[fieldName]"
+                                               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                    </template>
+
+                                    <template x-if="(fieldSchema.type || 'text') === 'boolean'">
+                                        <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                                            <input type="checkbox" x-model="settingsBlock.content[fieldName]" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                                            true / false
+                                        </label>
+                                    </template>
+
+                                    <template x-if="(fieldSchema.type || 'text') === 'select'">
+                                        <select x-model="settingsBlock.content[fieldName]"
+                                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                            <template x-for="option in (Array.isArray(fieldSchema.options) ? fieldSchema.options : [])" :key="option">
+                                                <option :value="option" x-text="option"></option>
+                                            </template>
+                                        </select>
+                                    </template>
+
+                                    <template x-if="!['textarea', 'number', 'boolean', 'select'].includes(fieldSchema.type || 'text')">
+                                        <input type="text"
+                                               x-model="settingsBlock.content[fieldName]"
+                                               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                    </template>
+                                </div>
                             </template>
                         </div>
                     </template>

@@ -45,6 +45,7 @@ final class PageEditorData
                 'html_template' => $template->html_template,
                 'schema' => $template->schema_json ?? [],
                 'default_content' => $template->default_content_json ?? [],
+                'preview_image_url' => $template->getFirstMediaUrl('preview_image') ?: null,
             ])
             ->values()
             ->all();

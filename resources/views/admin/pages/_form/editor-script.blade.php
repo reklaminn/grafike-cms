@@ -241,6 +241,101 @@ function frontendSectionEditor({ initialRegions = null, availableTemplates = [] 
             return String(content[summaryKey]);
         },
 
+        fieldLabel(fieldName, fieldSchema = {}) {
+            return fieldSchema.label || fieldSchema.name || fieldName;
+        },
+
+        repeaterFieldSchema(fieldSchema = {}) {
+            return fieldSchema.fields || fieldSchema.item_schema || {};
+        },
+
+        schemaDefaultValue(fieldSchema = {}) {
+            if (Object.prototype.hasOwnProperty.call(fieldSchema, 'default')) {
+                return JSON.parse(JSON.stringify(fieldSchema.default));
+            }
+
+            const type = fieldSchema.type || 'text';
+
+            if (type === 'boolean') return false;
+            if (type === 'number') return 0;
+            if (type === 'repeater') return [];
+
+            return '';
+        },
+
+        createRepeaterItem(fieldSchema = {}) {
+            const item = { _uid: this.generateUid('item') };
+            Object.entries(this.repeaterFieldSchema(fieldSchema)).forEach(([fieldName, childSchema]) => {
+                item[fieldName] = this.schemaDefaultValue(childSchema);
+            });
+
+            return item;
+        },
+
+        normalizeRepeaterItems(block) {
+            if (!block?.schema || !block?.content) return;
+
+            Object.entries(block.schema).forEach(([fieldName, fieldSchema]) => {
+                if ((fieldSchema?.type || 'text') !== 'repeater') return;
+
+                if (!Array.isArray(block.content[fieldName])) {
+                    block.content[fieldName] = [];
+                }
+
+                block.content[fieldName] = block.content[fieldName].map((item) => {
+                    const normalized = item && typeof item === 'object' && !Array.isArray(item)
+                        ? { ...item }
+                        : {};
+
+                    normalized._uid = normalized._uid || this.generateUid('item');
+
+                    Object.entries(this.repeaterFieldSchema(fieldSchema)).forEach(([childName, childSchema]) => {
+                        if (!Object.prototype.hasOwnProperty.call(normalized, childName)) {
+                            normalized[childName] = this.schemaDefaultValue(childSchema);
+                        }
+                    });
+
+                    return normalized;
+                });
+            });
+        },
+
+        ensureRepeaterContent(block, fieldName) {
+            if (!block?.content) return;
+            if (!Array.isArray(block.content[fieldName])) {
+                block.content[fieldName] = [];
+            }
+        },
+
+        addRepeaterItem(block, fieldName, fieldSchema) {
+            this.ensureRepeaterContent(block, fieldName);
+            block.content[fieldName].push(this.createRepeaterItem(fieldSchema));
+        },
+
+        removeRepeaterItem(block, fieldName, itemIndex) {
+            this.ensureRepeaterContent(block, fieldName);
+            block.content[fieldName].splice(itemIndex, 1);
+        },
+
+        duplicateRepeaterItem(block, fieldName, itemIndex) {
+            this.ensureRepeaterContent(block, fieldName);
+            const source = block.content[fieldName][itemIndex];
+            if (!source) return;
+
+            const clone = JSON.parse(JSON.stringify(source));
+            clone._uid = this.generateUid('item');
+            block.content[fieldName].splice(itemIndex + 1, 0, clone);
+        },
+
+        moveRepeaterItem(block, fieldName, itemIndex, direction) {
+            this.ensureRepeaterContent(block, fieldName);
+            const items = block.content[fieldName];
+            const targetIndex = itemIndex + direction;
+            if (targetIndex < 0 || targetIndex >= items.length) return;
+
+            [items[itemIndex], items[targetIndex]] = [items[targetIndex], items[itemIndex]];
+        },
+
         createColumn(region, rowIndex, columnIndex) {
             return {
                 _uid: this.generateUid('column'),
@@ -284,6 +379,26 @@ function frontendSectionEditor({ initialRegions = null, availableTemplates = [] 
                     .filter(Boolean)
                     .some((value) => String(value).toLowerCase().includes(query))
             );
+        },
+
+        groupedTemplates(search) {
+            const TYPE_LABELS = {
+                'header': 'Header', 'footer': 'Footer', 'hero': 'Hero / Banner',
+                'hero-banner': 'Hero Banner', 'slider': 'Slider', 'rich-text': 'Rich Text',
+                'content-block': 'İçerik Bloğu', 'article-list': 'Yazı Liste',
+                'features': 'Özellik Alanı', 'cta': 'CTA', 'gallery': 'Galeri',
+                'testimonials': 'Testimonials', 'cards': 'Kart Grubu',
+                'spacer': 'Boşluk', 'video-embed': 'Video', 'page-header': 'Sayfa Başlığı',
+                'menu': 'Menü',
+            };
+            const filtered = this.getFilteredTemplates(search);
+            const groups = {};
+            filtered.forEach(t => {
+                const key = t.type || 'other';
+                if (!groups[key]) groups[key] = { type: key, label: TYPE_LABELS[key] || key, templates: [] };
+                groups[key].templates.push(t);
+            });
+            return Object.values(groups);
         },
 
         getRegionPresets(region) {
@@ -560,6 +675,7 @@ function frontendSectionEditor({ initialRegions = null, availableTemplates = [] 
             this.pickerTarget = { region, rowIndex, columnIndex };
             this.pickerSearch = '';
             this.pickerModalOpen = true;
+            this.$nextTick(() => this.$refs.pickerSearchInput?.focus());
         },
 
         closeBlockPicker() {
@@ -620,6 +736,7 @@ function frontendSectionEditor({ initialRegions = null, availableTemplates = [] 
             this.settingsTarget = { region, rowIndex, columnIndex, blockIndex };
             this.settingsTab = 'content';
             this.settingsDraft = JSON.parse(JSON.stringify(this.regions?.[region]?.[rowIndex]?.columns?.[columnIndex]?.blocks?.[blockIndex] || null));
+            this.normalizeRepeaterItems(this.settingsDraft);
             this.settingsModalOpen = true;
         },
 
@@ -647,18 +764,47 @@ function frontendSectionEditor({ initialRegions = null, availableTemplates = [] 
         blockRenderedHtml(block) {
             if (!block) return '';
             const template = String(block.html_override || block.html_template || '').trim();
-            const rawPattern = new RegExp('\\{\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}\\}', 'g');
-            const safePattern = new RegExp('\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}', 'g');
 
             if (!template) {
                 return '<div class="text-xs text-gray-500">Bu block için HTML template tanımlı değil.</div>';
             }
 
+            return this.renderTemplateString(template, block.content || {}, block.schema || {});
+        },
+
+        renderTemplateString(template, content = {}, schema = {}) {
+            const rawPattern = new RegExp('\\{\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}\\}', 'g');
+            const safePattern = new RegExp('\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}', 'g');
+
             return template.replace(rawPattern, (_match, key) => {
-                return String(block.content?.[key] ?? '');
+                const repeaterHtml = this.renderRepeaterPlaceholder(key, content, schema);
+                if (repeaterHtml !== null) {
+                    return repeaterHtml;
+                }
+
+                return String(content?.[key] ?? '');
             }).replace(safePattern, (_match, key) => {
-                return this.escapeHtml(block.content?.[key] ?? '');
+                return this.escapeHtml(content?.[key] ?? '');
             });
+        },
+
+        renderRepeaterPlaceholder(key, content = {}, schema = {}) {
+            if (!String(key).endsWith('_html')) {
+                return null;
+            }
+
+            const baseKey = String(key).replace(/_html$/, '');
+            const fieldSchema = schema?.[baseKey] || {};
+            const items = content?.[baseKey];
+
+            if ((fieldSchema.type || 'text') !== 'repeater' || !Array.isArray(items) || !fieldSchema.item_template) {
+                return null;
+            }
+
+            return items.map((item) => {
+                const itemContent = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+                return this.renderTemplateString(String(fieldSchema.item_template), itemContent, {});
+            }).join('');
         },
 
         blockCodePreview(block) {
@@ -726,6 +872,25 @@ function frontendSectionEditor({ initialRegions = null, availableTemplates = [] 
                 .replaceAll('>', '&gt;')
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#039;');
+        },
+
+        serializeContent(value) {
+            if (Array.isArray(value)) {
+                return value.map((item) => this.serializeContent(item));
+            }
+
+            if (value && typeof value === 'object') {
+                return Object.entries(value).reduce((output, [key, item]) => {
+                    if (key === '_uid') {
+                        return output;
+                    }
+
+                    output[key] = this.serializeContent(item);
+                    return output;
+                }, {});
+            }
+
+            return value;
         },
 
         removeBlock(region, rowIndex, columnIndex, blockIndex) {
@@ -799,7 +964,7 @@ function frontendSectionEditor({ initialRegions = null, availableTemplates = [] 
                             component_key: block.component_key,
                             is_active: block.is_active !== false,
                             sort_order: block.sort_order || (blockIndex + 1),
-                            content: block.content || {},
+                            content: this.serializeContent(block.content || {}),
                             wrapper_tag: block.wrapper_tag || null,
                             css_class: block.css_class || null,
                             element_id: block.element_id || null,
