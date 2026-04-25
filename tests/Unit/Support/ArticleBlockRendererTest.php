@@ -106,4 +106,74 @@ class ArticleBlockRendererTest extends TestCase
         $this->assertStringContainsString('<p>Paragraf</p>', $html);
         $this->assertStringContainsString('<hr>', $html);
     }
+
+    // ─── Gallery (v2 image block) ─────────────────────────────────────────
+
+    public function test_single_image_in_gallery_array_renders_figure_without_wrapper(): void
+    {
+        $html = ArticleBlockRenderer::toHtml([
+            ['type' => 'image', 'images' => [
+                ['url' => 'https://example.com/a.jpg', 'alt' => 'Tek', 'caption' => ''],
+            ]],
+        ]);
+
+        $this->assertStringContainsString('<figure>', $html);
+        $this->assertStringContainsString('src="https://example.com/a.jpg"', $html);
+        $this->assertStringNotContainsString('article-gallery', $html);
+    }
+
+    public function test_multiple_images_render_gallery_wrapper(): void
+    {
+        $html = ArticleBlockRenderer::toHtml([
+            ['type' => 'image', 'images' => [
+                ['url' => 'https://example.com/a.jpg', 'alt' => 'Bir', 'caption' => 'İlk'],
+                ['url' => 'https://example.com/b.jpg', 'alt' => 'İki', 'caption' => ''],
+            ]],
+        ]);
+
+        $this->assertStringContainsString('class="article-gallery"', $html);
+        $this->assertStringContainsString('example.com/a.jpg', $html);
+        $this->assertStringContainsString('example.com/b.jpg', $html);
+        $this->assertStringContainsString('<figcaption>İlk</figcaption>', $html);
+        $this->assertSame(2, substr_count($html, '<figure>'));
+    }
+
+    public function test_legacy_single_url_image_is_promoted_to_gallery_format(): void
+    {
+        $html = ArticleBlockRenderer::toHtml([
+            ['type' => 'image', 'url' => 'https://example.com/legacy.jpg', 'alt' => 'Eski', 'caption' => 'Eski başlık'],
+        ]);
+
+        $this->assertStringContainsString('<figure>', $html);
+        $this->assertStringContainsString('legacy.jpg', $html);
+        $this->assertStringContainsString('<figcaption>Eski başlık</figcaption>', $html);
+        $this->assertStringNotContainsString('article-gallery', $html);
+    }
+
+    public function test_gallery_with_all_empty_urls_returns_empty(): void
+    {
+        $html = ArticleBlockRenderer::toHtml([
+            ['type' => 'image', 'images' => [
+                ['url' => '', 'alt' => '', 'caption' => ''],
+                ['url' => '  ', 'alt' => '', 'caption' => ''],
+            ]],
+        ]);
+
+        $this->assertEmpty(trim($html));
+    }
+
+    public function test_gallery_skips_images_with_empty_url(): void
+    {
+        $html = ArticleBlockRenderer::toHtml([
+            ['type' => 'image', 'images' => [
+                ['url' => 'https://example.com/good.jpg', 'alt' => 'Geçerli', 'caption' => ''],
+                ['url' => '',                              'alt' => 'Boş URL', 'caption' => ''],
+            ]],
+        ]);
+
+        // Only 1 valid image → single figure, no gallery wrapper
+        $this->assertStringContainsString('good.jpg', $html);
+        $this->assertStringNotContainsString('Boş URL', $html);
+        $this->assertStringNotContainsString('article-gallery', $html);
+    }
 }

@@ -4,8 +4,14 @@ namespace App\Support;
 
 /**
  * Renders an article's content_json block array to plain HTML,
- * which is stored back in the `body` column for backward compatibility
- * with the legacy template engine.
+ * stored back in the `body` column for backward compat with the template engine.
+ *
+ * Image block format (v2 — gallery):
+ *   { "type": "image", "images": [{ "url": "...", "alt": "...", "caption": "..." }, ...] }
+ *
+ * Legacy image format (v1 — single):
+ *   { "type": "image", "url": "...", "alt": "...", "caption": "..." }
+ *   → auto-promoted to images array for rendering.
  */
 class ArticleBlockRenderer
 {
@@ -24,6 +30,8 @@ class ArticleBlockRenderer
         )));
     }
 
+    // ─── Block renderers ────────────────────────────────────────────────
+
     private static function heading(array $b): string
     {
         $level = max(1, min(6, (int) ($b['level'] ?? 2)));
@@ -34,25 +42,44 @@ class ArticleBlockRenderer
 
     private static function paragraph(array $b): string
     {
-        $content = trim($b['content'] ?? '');
-
-        return $content ?: '';
+        return trim($b['content'] ?? '');
     }
 
     private static function image(array $b): string
     {
-        $url = trim($b['url'] ?? '');
-        if (! $url) {
+        // Promote legacy single-image format to images array
+        if (isset($b['images']) && is_array($b['images'])) {
+            $images = array_values(array_filter($b['images'], fn ($i) => trim($i['url'] ?? '') !== ''));
+        } elseif (!empty($b['url'])) {
+            $images = [['url' => $b['url'], 'alt' => $b['alt'] ?? '', 'caption' => $b['caption'] ?? '']];
+        } else {
             return '';
         }
 
-        $alt     = htmlspecialchars($b['alt'] ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $caption = trim($b['caption'] ?? '');
-        $img     = '<img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '" loading="lazy">';
+        if (empty($images)) {
+            return '';
+        }
+
+        if (count($images) === 1) {
+            return self::singleFigure($images[0]);
+        }
+
+        // Gallery wrapper for multiple images
+        $inner = implode("\n", array_map([self::class, 'singleFigure'], $images));
+
+        return '<div class="article-gallery">' . "\n" . $inner . "\n" . '</div>';
+    }
+
+    private static function singleFigure(array $img): string
+    {
+        $url     = trim($img['url'] ?? '');
+        $alt     = htmlspecialchars($img['alt'] ?? '', ENT_QUOTES, 'UTF-8');
+        $caption = trim($img['caption'] ?? '');
+        $imgTag  = '<img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '" loading="lazy">';
 
         return $caption
-            ? '<figure>' . $img . '<figcaption>' . htmlspecialchars($caption, ENT_QUOTES, 'UTF-8') . '</figcaption></figure>'
-            : '<figure>' . $img . '</figure>';
+            ? '<figure>' . $imgTag . '<figcaption>' . htmlspecialchars($caption, ENT_QUOTES, 'UTF-8') . '</figcaption></figure>'
+            : '<figure>' . $imgTag . '</figure>';
     }
 
     private static function video(array $b): string
