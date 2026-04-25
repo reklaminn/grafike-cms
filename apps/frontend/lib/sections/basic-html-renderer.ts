@@ -1,6 +1,6 @@
 import type { MenuItem, MenusPayload, PageSection, SettingsPayload, SitePayload } from "@/lib/types";
 
-function escapeHtml(value: string | number | boolean | null | undefined): string {
+function escapeHtml(value: unknown): string {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -13,6 +13,11 @@ export type SectionRenderContext = {
   site: SitePayload["site"];
   settings: SettingsPayload["settings"];
   menus: MenusPayload;
+};
+
+type RepeaterSchema = {
+  type?: unknown;
+  item_template?: unknown;
 };
 
 function renderMenuItems(items: MenuItem[]): string {
@@ -70,7 +75,7 @@ function resolveValue(
   key: string,
   content: PageSection["content"],
   systemValues: Record<string, string>,
-): string | number | boolean | null | undefined {
+): unknown {
   if (Object.prototype.hasOwnProperty.call(content, key)) {
     return content[key];
   }
@@ -78,14 +83,46 @@ function resolveValue(
   return systemValues[key];
 }
 
+function resolveRepeaterHtml(
+  key: string,
+  content: PageSection["content"],
+  systemValues: Record<string, string>,
+  context: SectionRenderContext,
+  schema?: PageSection["schema"],
+): string | null {
+  if (!key.endsWith("_html")) {
+    return null;
+  }
+
+  const baseKey = key.slice(0, -5);
+  const value = content[baseKey];
+  const fieldSchema = schema?.[baseKey] as RepeaterSchema | undefined;
+
+  if (!Array.isArray(value) || fieldSchema?.type !== "repeater" || typeof fieldSchema.item_template !== "string") {
+    return null;
+  }
+
+  return value
+    .filter((item): item is PageSection["content"] => item !== null && typeof item === "object" && !Array.isArray(item))
+    .map((item) => renderTemplateString(fieldSchema.item_template as string, item, context))
+    .join("");
+}
+
 function renderTemplateString(
   template: string,
   content: PageSection["content"],
   context: SectionRenderContext,
+  schema?: PageSection["schema"],
 ): string {
   const systemValues = buildSystemPlaceholders(context);
 
   const withRawValues = template.replaceAll(/{{{\s*([a-zA-Z0-9_]+)\s*}}}/g, (_match, key: string) => {
+    const repeaterHtml = resolveRepeaterHtml(key, content, systemValues, context, schema);
+
+    if (repeaterHtml !== null) {
+      return repeaterHtml;
+    }
+
     return String(resolveValue(key, content, systemValues) ?? "");
   });
 
@@ -98,7 +135,7 @@ export function renderBasicHtmlSection(section: PageSection, context: SectionRen
   const template = section.html_override || section.html_template;
 
   if (template) {
-    return renderTemplateString(template, section.content, context);
+    return renderTemplateString(template, section.content, context, section.schema);
   }
 
   return `

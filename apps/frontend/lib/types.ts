@@ -69,7 +69,7 @@ export type PageSection = {
   component_key?: string | null;
   schema?: Record<string, unknown>;
   is_active: boolean;
-  content: Record<string, string | number | boolean | null>;
+  content: Record<string, unknown>;
   custom_css?: string;
   custom_js?: string;
   wrapper_tag?: string | null;
