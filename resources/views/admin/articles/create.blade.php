@@ -25,42 +25,13 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css">
+<style>
+    .ql-toolbar.ql-snow   { border-radius: 0.5rem 0.5rem 0 0; border-color: #d1d5db; background: #f9fafb; }
+    .ql-container.ql-snow { border-radius: 0 0 0.5rem 0.5rem; border-color: #d1d5db; }
+    [data-quill] .ql-editor { min-height: 120px; font-size: 14px; }
+</style>
 @endpush
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-<script>
-(function () {
-    const hiddenInput = document.getElementById('body');
-    if (!hiddenInput) return;
-
-    const container = document.getElementById('body-quill-editor');
-    const quill = new Quill(container, {
-        theme: 'snow',
-        modules: {
-            toolbar: [
-                [{ header: [1, 2, 3, 4, false] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ color: [] }, { background: [] }],
-                [{ list: 'ordered' }, { list: 'bullet' }],
-                [{ align: [] }],
-                ['blockquote', 'code-block'],
-                ['link', 'image'],
-                ['clean'],
-            ],
-        },
-    });
-
-    // Set initial value
-    const initial = hiddenInput.value;
-    if (initial) {
-        quill.clipboard.dangerouslyPasteHTML(initial);
-    }
-
-    // Sync to hidden textarea before form submit
-    hiddenInput.closest('form').addEventListener('submit', () => {
-        hiddenInput.value = quill.root.innerHTML;
-    });
-})();
-</script>
 @endpush

@@ -24,7 +24,8 @@ class Article extends Model implements HasMedia
     {
         return [
             'published_at' => 'datetime',
-            'is_featured' => 'boolean',
+            'is_featured'  => 'boolean',
+            'content_json' => 'array',
         ];
     }
 

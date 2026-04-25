@@ -28,12 +28,13 @@
             </div>
         </div>
 
-        {{-- ─── İçerik (Quill) ─────────────────────────────────────────── --}}
+        {{-- ─── İçerik (Blok Editörü) ──────────────────────────────────── --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-base font-semibold text-gray-800 mb-4">İçerik</h3>
-            {{-- Hidden textarea — Quill syncs HTML here before submit --}}
-            <textarea id="body" name="body" class="hidden">{{ old('body', $article->body ?? '') }}</textarea>
-            <div id="body-quill-editor"></div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-semibold text-gray-800">İçerik</h3>
+                <span class="text-xs text-gray-400">Blok tabanlı editör</span>
+            </div>
+            @include('admin.articles._content-builder')
         </div>
 
         {{-- ─── Ek Bilgiler ─────────────────────────────────────────────── --}}

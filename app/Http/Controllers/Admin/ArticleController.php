@@ -9,6 +9,7 @@ use App\Models\Article;
 use App\Models\Form;
 use App\Models\Language;
 use App\Models\Page;
+use App\Support\ArticleBlockRenderer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -65,10 +66,17 @@ class ArticleController extends Controller
         }
 
         $data['is_featured'] = $request->boolean('is_featured');
-        $data['author_id'] = auth('admin')->id();
+        $data['author_id']   = auth('admin')->id();
 
         if (empty($data['published_at']) && $data['status'] === 'published') {
             $data['published_at'] = now();
+        }
+
+        // Block editor: decode content_json and render body from blocks
+        $blocks = $this->decodeContentBlocks($request->input('content_json'));
+        if ($blocks !== null) {
+            $data['content_json'] = $blocks;
+            $data['body']         = ArticleBlockRenderer::toHtml($blocks);
         }
 
         $article = Article::create($data);
@@ -114,6 +122,13 @@ class ArticleController extends Controller
 
         $data['is_featured'] = $request->boolean('is_featured');
 
+        // Block editor: decode content_json and render body from blocks
+        $blocks = $this->decodeContentBlocks($request->input('content_json'));
+        if ($blocks !== null) {
+            $data['content_json'] = $blocks;
+            $data['body']         = ArticleBlockRenderer::toHtml($blocks);
+        }
+
         $article->update($data);
 
         if ($request->hasFile('cover_image')) {
@@ -151,6 +166,21 @@ class ArticleController extends Controller
         return redirect()
             ->route('admin.articles.index')
             ->with('success', 'Yazı başarıyla silindi.');
+    }
+
+    /**
+     * Decode the content_json string from the block editor form field.
+     * Returns null if input is missing or invalid (so legacy body is preserved).
+     */
+    protected function decodeContentBlocks(?string $json): ?array
+    {
+        if (is_null($json) || $json === '') {
+            return null;
+        }
+
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 
     protected function saveSeo(Article $article, Request $request): void

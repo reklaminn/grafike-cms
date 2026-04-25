@@ -22,7 +22,8 @@ class ArticleRequest extends FormRequest
                 'nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]+$/',
                 Rule::unique('articles', 'slug')->ignore($articleId),
             ],
-            'body' => ['nullable', 'string'],
+            'body'         => ['nullable', 'string'],
+            'content_json' => ['nullable', 'string'],   // raw JSON from block editor, decoded in controller
             'excerpt' => ['nullable', 'string', 'max:1000'],
             'extra_info' => ['nullable', 'string'],
             'page_id' => ['nullable', 'exists:pages,id'],
