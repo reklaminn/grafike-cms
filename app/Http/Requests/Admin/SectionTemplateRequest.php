@@ -60,7 +60,8 @@ class SectionTemplateRequest extends FormRequest
             'schema_json' => ['nullable', 'array'],
             'legacy_config_map_json' => ['nullable', 'array'],
             'default_content_json' => ['nullable', 'array'],
-            'preview_image' => ['nullable', 'string', 'max:500'],
+            'preview_image' => ['nullable', 'image', 'max:4096'],
+            'remove_preview_image' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ];
     }

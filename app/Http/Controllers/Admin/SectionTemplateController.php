@@ -37,7 +37,10 @@ class SectionTemplateController extends Controller
 
     public function index(Request $request)
     {
-        $query = SectionTemplate::query()->with('theme');
+        $trashed = $request->boolean('trashed');
+        $query = $trashed
+            ? SectionTemplate::onlyTrashed()->with('theme')
+            : SectionTemplate::query()->with('theme');
 
         if ($request->filled('q')) {
             $search = trim((string) $request->string('q'));
@@ -63,7 +66,7 @@ class SectionTemplateController extends Controller
             $query->where('render_mode', $request->input('render_mode'));
         }
 
-        if ($request->filled('status')) {
+        if (! $trashed && $request->filled('status')) {
             $query->where('is_active', $request->input('status') === 'active');
         }
 
@@ -80,8 +83,9 @@ class SectionTemplateController extends Controller
 
         $usageMap = $this->computeUsageMap();
         $usageCounts = collect($usageMap)->map(fn (array $pages) => count($pages))->all();
+        $trashedCount = SectionTemplate::onlyTrashed()->count();
 
-        return view('admin.section-templates.index', compact('sectionTemplates', 'themes', 'typeOptions', 'usageCounts', 'usageMap'));
+        return view('admin.section-templates.index', compact('sectionTemplates', 'themes', 'typeOptions', 'usageCounts', 'usageMap', 'trashed', 'trashedCount'));
     }
 
     private function computeUsageCounts(): array
@@ -133,6 +137,11 @@ class SectionTemplateController extends Controller
     {
         $sectionTemplate = SectionTemplate::create($request->validated());
 
+        if ($request->hasFile('preview_image')) {
+            $sectionTemplate->addMediaFromRequest('preview_image')
+                ->toMediaCollection('preview_image');
+        }
+
         return redirect()
             ->route('admin.section-templates.edit', $sectionTemplate)
             ->with('success', 'Block şablonu oluşturuldu.');
@@ -146,6 +155,13 @@ class SectionTemplateController extends Controller
     public function update(SectionTemplateRequest $request, SectionTemplate $sectionTemplate)
     {
         $sectionTemplate->update($request->validated());
+
+        if ($request->hasFile('preview_image')) {
+            $sectionTemplate->addMediaFromRequest('preview_image')
+                ->toMediaCollection('preview_image');
+        } elseif ($request->boolean('remove_preview_image')) {
+            $sectionTemplate->clearMediaCollection('preview_image');
+        }
 
         return redirect()
             ->route('admin.section-templates.edit', $sectionTemplate)
@@ -180,11 +196,30 @@ class SectionTemplateController extends Controller
 
     public function destroy(SectionTemplate $sectionTemplate)
     {
-        $sectionTemplate->delete();
+        $sectionTemplate->delete(); // soft delete
 
         return redirect()
             ->route('admin.section-templates.index')
-            ->with('success', 'Block şablonu silindi.');
+            ->with('success', 'Block şablonu arşivlendi.');
+    }
+
+    public function restore(SectionTemplate $sectionTemplate)
+    {
+        $sectionTemplate->restore();
+
+        return redirect()
+            ->route('admin.section-templates.index', ['trashed' => 1])
+            ->with('success', 'Block şablonu geri yüklendi.');
+    }
+
+    public function forceDelete(SectionTemplate $sectionTemplate)
+    {
+        $sectionTemplate->clearMediaCollection('preview_image');
+        $sectionTemplate->forceDelete();
+
+        return redirect()
+            ->route('admin.section-templates.index', ['trashed' => 1])
+            ->with('success', 'Block şablonu kalıcı olarak silindi.');
     }
 
     public function preview(Request $request, SectionTemplate $sectionTemplate): mixed

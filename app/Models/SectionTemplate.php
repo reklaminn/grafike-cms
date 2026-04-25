@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class SectionTemplate extends Model
+class SectionTemplate extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes, InteractsWithMedia;
 
     protected $fillable = [
         'theme_id',
@@ -21,7 +24,6 @@ class SectionTemplate extends Model
         'schema_json',
         'legacy_config_map_json',
         'default_content_json',
-        'preview_image',
         'is_active',
     ];
 
@@ -33,6 +35,16 @@ class SectionTemplate extends Model
             'default_content_json' => 'array',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('preview_image')->singleFile();
+    }
+
+    public function getPreviewImageUrlAttribute(): ?string
+    {
+        return $this->getFirstMediaUrl('preview_image') ?: null;
     }
 
     public function theme()

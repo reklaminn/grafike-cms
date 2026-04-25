@@ -67,25 +67,49 @@
         </form>
 
         {{-- Status filter pills --}}
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             @php
                 $statusParam = request('status', '');
-                $baseQuery = request()->except('status', 'page');
+                $baseQuery = request()->except('status', 'page', 'trashed');
             @endphp
-            <span class="text-sm text-gray-500">Durum:</span>
-            <a href="{{ route('admin.section-templates.index', $baseQuery) }}"
-               class="rounded-full px-3 py-1 text-xs font-medium {{ $statusParam === '' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                Tümü
-            </a>
-            <a href="{{ route('admin.section-templates.index', array_merge($baseQuery, ['status' => 'active'])) }}"
-               class="rounded-full px-3 py-1 text-xs font-medium {{ $statusParam === 'active' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                Aktif
-            </a>
-            <a href="{{ route('admin.section-templates.index', array_merge($baseQuery, ['status' => 'inactive'])) }}"
-               class="rounded-full px-3 py-1 text-xs font-medium {{ $statusParam === 'inactive' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                Pasif
-            </a>
-            <span class="ml-2 text-sm text-gray-400">{{ $sectionTemplates->total() }} şablon</span>
+
+            @if(! $trashed)
+                <span class="text-sm text-gray-500">Durum:</span>
+                <a href="{{ route('admin.section-templates.index', $baseQuery) }}"
+                   class="rounded-full px-3 py-1 text-xs font-medium {{ $statusParam === '' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                    Tümü
+                </a>
+                <a href="{{ route('admin.section-templates.index', array_merge($baseQuery, ['status' => 'active'])) }}"
+                   class="rounded-full px-3 py-1 text-xs font-medium {{ $statusParam === 'active' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                    Aktif
+                </a>
+                <a href="{{ route('admin.section-templates.index', array_merge($baseQuery, ['status' => 'inactive'])) }}"
+                   class="rounded-full px-3 py-1 text-xs font-medium {{ $statusParam === 'inactive' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                    Pasif
+                </a>
+            @else
+                <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                    <i class="fas fa-archive mr-1"></i> Arşiv görünümü
+                </span>
+            @endif
+
+            <span class="ml-auto text-sm text-gray-400">{{ $sectionTemplates->total() }} şablon</span>
+
+            {{-- Arşiv toggle --}}
+            @if(! $trashed)
+                <a href="{{ route('admin.section-templates.index', ['trashed' => 1]) }}"
+                   class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium {{ $trashedCount > 0 ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200' }}">
+                    <i class="fas fa-archive"></i> Arşiv
+                    @if($trashedCount > 0)
+                        <span class="rounded-full bg-amber-200 px-1.5 font-semibold text-amber-900">{{ $trashedCount }}</span>
+                    @endif
+                </a>
+            @else
+                <a href="{{ route('admin.section-templates.index') }}"
+                   class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
+                    <i class="fas fa-arrow-left"></i> Aktif şablonlar
+                </a>
+            @endif
         </div>
 
         {{-- Kart grid --}}
@@ -97,9 +121,10 @@
                 @endphp
                 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {{-- Preview görsel --}}
-                    @if($sectionTemplate->preview_image)
+                    @php $previewImgUrl = $sectionTemplate->getFirstMediaUrl('preview_image'); @endphp
+                    @if($previewImgUrl)
                         <div class="aspect-video w-full overflow-hidden bg-gray-100">
-                            <img src="{{ $sectionTemplate->preview_image }}"
+                            <img src="{{ $previewImgUrl }}"
                                  alt="{{ $sectionTemplate->name }}"
                                  class="h-full w-full object-cover">
                         </div>
@@ -192,30 +217,52 @@
                         </div>
 
                         <div class="mt-4 flex items-center gap-2">
-                            <a href="{{ route('admin.section-templates.edit', $sectionTemplate) }}"
-                               class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100">
-                                <i class="fas fa-pen"></i> Düzenle
-                            </a>
-                            <form method="POST" action="{{ route('admin.section-templates.duplicate', $sectionTemplate) }}">
-                                @csrf
-                                <button type="submit"
-                                        class="inline-flex items-center gap-1.5 rounded-lg bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100">
-                                    <i class="fas fa-copy"></i> Klonla
-                                </button>
-                            </form>
-                            <form method="POST" action="{{ route('admin.section-templates.destroy', $sectionTemplate) }}"
-                                  class="ml-auto"
-                                  onsubmit="return confirm('{{ $usageCount > 0 ? "Bu şablon {$usageCount} sayfada kullanılıyor! Yine de silmek istiyor musunuz?" : "Bu block şablonunu silmek istediğinize emin misiniz?" }}')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-red-500 hover:bg-red-50 {{ $usageCount > 0 ? 'ring-1 ring-red-200' : '' }}">
-                                    <i class="fas fa-trash-alt"></i>
-                                    @if($usageCount > 0)
-                                        <span class="text-xs font-medium">{{ $usageCount }}</span>
-                                    @endif
-                                </button>
-                            </form>
+                            @if(! $trashed)
+                                <a href="{{ route('admin.section-templates.edit', $sectionTemplate) }}"
+                                   class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100">
+                                    <i class="fas fa-pen"></i> Düzenle
+                                </a>
+                                <form method="POST" action="{{ route('admin.section-templates.duplicate', $sectionTemplate) }}">
+                                    @csrf
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100">
+                                        <i class="fas fa-copy"></i> Klonla
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.section-templates.destroy', $sectionTemplate) }}"
+                                      class="ml-auto"
+                                      onsubmit="return confirm('{{ $usageCount > 0 ? "Bu şablon {$usageCount} sayfada kullanılıyor! Arşivlemek istiyor musunuz?" : "Bu block şablonunu arşivlemek istiyor musunuz?" }}')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-amber-600 hover:bg-amber-50 {{ $usageCount > 0 ? 'ring-1 ring-amber-200' : '' }}"
+                                            title="Arşivle">
+                                        <i class="fas fa-archive"></i>
+                                        @if($usageCount > 0)
+                                            <span class="text-xs font-medium">{{ $usageCount }}</span>
+                                        @endif
+                                    </button>
+                                </form>
+                            @else
+                                {{-- Arşivlenmiş: geri yükle + kalıcı sil --}}
+                                <form method="POST" action="{{ route('admin.section-templates.restore', $sectionTemplate) }}">
+                                    @csrf
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100">
+                                        <i class="fas fa-rotate-left"></i> Geri Yükle
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.section-templates.force-delete', $sectionTemplate) }}"
+                                      class="ml-auto"
+                                      onsubmit="return confirm('Bu şablon kalıcı olarak silinecek. Geri alınamaz. Devam etmek istiyor musunuz?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-red-500 hover:bg-red-50">
+                                        <i class="fas fa-trash-alt"></i> Kalıcı Sil
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     </div>
                 </div>

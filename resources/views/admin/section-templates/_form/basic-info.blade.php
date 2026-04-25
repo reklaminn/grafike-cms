@@ -75,9 +75,19 @@
         </div>
         <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">Önizleme Görseli</label>
-            <input type="text" name="preview_image" value="{{ old('preview_image', $sectionTemplate->preview_image) }}"
-                   placeholder="https://..."
+            @php $previewUrl = $sectionTemplate->exists ? $sectionTemplate->getFirstMediaUrl('preview_image') : null; @endphp
+            @if($previewUrl)
+                <div class="mb-2 flex items-start gap-3">
+                    <img src="{{ $previewUrl }}" alt="Önizleme" class="h-20 w-32 rounded-lg border border-gray-200 object-cover">
+                    <label class="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-800 cursor-pointer mt-1">
+                        <input type="checkbox" name="remove_preview_image" value="1" class="h-3.5 w-3.5 rounded">
+                        Görseli kaldır
+                    </label>
+                </div>
+            @endif
+            <input type="file" name="preview_image" accept="image/*"
                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-indigo-500">
+            <p class="mt-1 text-xs text-gray-500">JPG, PNG, WebP — maks. 4 MB.</p>
         </div>
         <label class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 md:col-span-2">
             <input type="hidden" name="is_active" value="0">
