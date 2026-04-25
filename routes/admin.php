@@ -107,6 +107,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('design', [DesignController::class, 'index'])->name('design.index');
         Route::put('design', [DesignController::class, 'update'])->name('design.update');
         Route::resource('themes', ThemeController::class)->except('show');
+        Route::get('section-templates/menu-placeholders', [SectionTemplateController::class, 'menuPlaceholders'])->name('section-templates.menu-placeholders');
         Route::resource('section-templates', SectionTemplateController::class)->except('show');
         Route::post('section-templates/{section_template}/duplicate', [SectionTemplateController::class, 'duplicate'])->name('section-templates.duplicate');
 

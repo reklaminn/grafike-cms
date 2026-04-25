@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SectionTemplateRequest;
+use App\Models\Menu;
 use App\Models\SectionTemplate;
+use App\Models\SiteSetting;
 use App\Models\Theme;
 use App\Support\FrontendSections;
 use Illuminate\Http\Request;
@@ -52,6 +54,14 @@ class SectionTemplateController extends Controller
             $query->where('theme_id', $request->integer('theme_id'));
         }
 
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        if ($request->filled('render_mode')) {
+            $query->where('render_mode', $request->input('render_mode'));
+        }
+
         if ($request->filled('status')) {
             $query->where('is_active', $request->input('status') === 'active');
         }
@@ -65,23 +75,40 @@ class SectionTemplateController extends Controller
             ->withQueryString();
 
         $themes = Theme::query()->orderBy('name')->get(['id', 'name', 'slug']);
+        $typeOptions = $this->buildTypeOptions();
 
-        $usageCounts = $this->computeUsageCounts();
+        $usageMap = $this->computeUsageMap();
+        $usageCounts = collect($usageMap)->map(fn (array $pages) => count($pages))->all();
 
-        return view('admin.section-templates.index', compact('sectionTemplates', 'themes', 'usageCounts'));
+        return view('admin.section-templates.index', compact('sectionTemplates', 'themes', 'typeOptions', 'usageCounts', 'usageMap'));
     }
 
     private function computeUsageCounts(): array
     {
+        return collect($this->computeUsageMap())
+            ->map(fn (array $pages) => count($pages))
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<int, array{id: int, title: string, slug: string}>>
+     */
+    private function computeUsageMap(): array
+    {
         return DB::table('pages')
             ->whereNotNull('sections_json')
-            ->get(['sections_json'])
+            ->get(['id', 'title', 'slug', 'sections_json'])
             ->reduce(function (array $carry, object $row): array {
                 $sections = json_decode($row->sections_json, true);
                 foreach (FrontendSections::flattenBlocks($sections ?: []) as $block) {
                     $id = $block['section_template_id'] ?? null;
                     if ($id) {
-                        $carry[$id] = ($carry[$id] ?? 0) + 1;
+                        $carry[$id] ??= [];
+                        $carry[$id][$row->id] = [
+                            'id' => (int) $row->id,
+                            'title' => (string) $row->title,
+                            'slug' => (string) $row->slug,
+                        ];
                     }
                 }
                 return $carry;
@@ -159,13 +186,41 @@ class SectionTemplateController extends Controller
             ->with('success', 'Block şablonu silindi.');
     }
 
+    public function menuPlaceholders(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json($this->buildMenuPlaceholders());
+    }
+
     private function buildFormViewData(SectionTemplate $sectionTemplate): array
     {
         $themes = Theme::query()->orderBy('name')->get();
         $typeOptions = $this->buildTypeOptions();
         $variationOptions = $this->buildVariationOptions($themes, $sectionTemplate);
+        $menuPlaceholders = $this->buildMenuPlaceholders();
+        $systemPlaceholders = $this->buildSystemPlaceholders();
+        $legacyModuleOptions = $this->buildLegacyModuleOptions();
+        $usagePages = $sectionTemplate->exists
+            ? array_values($this->computeUsageMap()[$sectionTemplate->id] ?? [])
+            : [];
 
-        return compact('sectionTemplate', 'themes', 'typeOptions', 'variationOptions');
+        return compact('sectionTemplate', 'themes', 'typeOptions', 'variationOptions', 'menuPlaceholders', 'systemPlaceholders', 'legacyModuleOptions', 'usagePages');
+    }
+
+    /**
+     * @return array<string, string>  module_key => human label
+     */
+    private function buildLegacyModuleOptions(): array
+    {
+        $modulesPath = app_path('Services/ModuleRenderer/Modules');
+
+        return collect(glob("{$modulesPath}/*.php"))
+            ->map(fn (string $path) => basename($path, '.php'))
+            ->reject(fn (string $class) => in_array($class, ['BaseModule', 'NotFoundModule']))
+            ->sort()
+            ->mapWithKeys(fn (string $class) => [
+                $class => str($class)->replaceLast('Module', '')->headline()->value(),
+            ])
+            ->all();
     }
 
     /**
@@ -238,5 +293,79 @@ class SectionTemplateController extends Controller
         }
 
         return $existing;
+    }
+
+    /**
+     * @return array<int, array{label: string, key: string, html_token: string, items_token: string}>
+     */
+    private function buildMenuPlaceholders(): array
+    {
+        return Menu::query()
+            ->where('is_active', true)
+            ->orderBy('location')
+            ->orderBy('name')
+            ->get(['name', 'slug', 'location'])
+            ->flatMap(function (Menu $menu) {
+                return collect([$menu->location, $menu->slug])
+                    ->filter()
+                    ->map(fn (string $key) => $this->normalizePlaceholderKey($key))
+                    ->filter()
+                    ->unique()
+                    ->map(fn (string $key) => [
+                        'label' => trim($menu->name.' / '.$key, ' /'),
+                        'key' => $key,
+                        'html_token' => '{{{menu_'.$key.'_html}}}',
+                        'items_token' => '{{{menu_'.$key.'_items_html}}}',
+                    ]);
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{label: string, token: string, source: string}>
+     */
+    private function buildSystemPlaceholders(): array
+    {
+        $fixed = collect([
+            ['label' => 'Site adı', 'token' => '{{site_name}}', 'source' => 'system'],
+            ['label' => 'Tema slug', 'token' => '{{theme_slug}}', 'source' => 'system'],
+            ['label' => 'Site domain', 'token' => '{{site_domain}}', 'source' => 'system'],
+            ['label' => 'Telefon', 'token' => '{{phone}}', 'source' => 'settings'],
+            ['label' => 'E-posta', 'token' => '{{email}}', 'source' => 'settings'],
+            ['label' => 'Adres', 'token' => '{{address}}', 'source' => 'settings'],
+            ['label' => 'WhatsApp', 'token' => '{{whatsapp_number}}', 'source' => 'settings'],
+            ['label' => 'Çalışma saatleri', 'token' => '{{working_hours}}', 'source' => 'settings'],
+            ['label' => 'Vergi no', 'token' => '{{tax_id}}', 'source' => 'settings'],
+            ['label' => 'Footer metni', 'token' => '{{footer_text}}', 'source' => 'settings'],
+            ['label' => 'Logo URL', 'token' => '{{logo_url}}', 'source' => 'settings'],
+            ['label' => 'Favicon URL', 'token' => '{{favicon_url}}', 'source' => 'settings'],
+        ]);
+
+        $settings = SiteSetting::query()
+            ->select(['key', 'group'])
+            ->orderBy('group')
+            ->orderBy('key')
+            ->get()
+            ->map(function (SiteSetting $setting) {
+                $key = $this->normalizePlaceholderKey((string) $setting->key);
+
+                return [
+                    'label' => $setting->key,
+                    'token' => '{{'.$key.'}}',
+                    'source' => $setting->group ?: 'settings',
+                ];
+            });
+
+        return $fixed
+            ->merge($settings)
+            ->unique('token')
+            ->values()
+            ->all();
+    }
+
+    private function normalizePlaceholderKey(string $key): string
+    {
+        return trim((string) str($key)->lower()->replaceMatches('/[^a-z0-9_]+/', '_'), '_');
     }
 }

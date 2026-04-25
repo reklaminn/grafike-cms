@@ -18,7 +18,7 @@
         </div>
 
         {{-- Filtreler --}}
-        <form method="GET" class="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+        <form method="GET" class="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_220px_180px_auto]">
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Ara</label>
                 <input type="text" name="q" value="{{ request('q') }}" placeholder="Ad, type, variation veya legacy modül..."
@@ -35,11 +35,30 @@
                     @endforeach
                 </select>
             </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Type</label>
+                <select name="type" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Tüm type'lar</option>
+                    @foreach($typeOptions as $value => $label)
+                        <option value="{{ $value }}" @selected(request('type') === $value)>
+                            {{ $label }} ({{ $value }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Render</label>
+                <select name="render_mode" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Tüm render modları</option>
+                    <option value="html" @selected(request('render_mode') === 'html')>html</option>
+                    <option value="component" @selected(request('render_mode') === 'component')>component</option>
+                </select>
+            </div>
             <div class="flex items-end gap-2">
                 <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
                     <i class="fas fa-search"></i> Filtrele
                 </button>
-                @if(request()->hasAny(['q', 'theme_id', 'status']))
+                @if(request()->hasAny(['q', 'theme_id', 'type', 'render_mode', 'status']))
                     <a href="{{ route('admin.section-templates.index') }}" class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
                         Temizle
                     </a>
@@ -72,7 +91,10 @@
         {{-- Kart grid --}}
         <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
             @forelse($sectionTemplates as $sectionTemplate)
-                @php $usageCount = $usageCounts[$sectionTemplate->id] ?? 0; @endphp
+                @php
+                    $usageCount = $usageCounts[$sectionTemplate->id] ?? 0;
+                    $usedPages = array_values($usageMap[$sectionTemplate->id] ?? []);
+                @endphp
                 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                     {{-- Preview görsel --}}
                     @if($sectionTemplate->preview_image)
@@ -145,6 +167,29 @@
                                 <dd class="mt-0.5 text-xs font-medium text-gray-700">{{ count($sectionTemplate->schema_json ?? []) }} alan</dd>
                             </div>
                         </dl>
+
+                        <div class="mt-4 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400">Kullanan Sayfalar</div>
+                                <span class="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-600">{{ $usageCount }}</span>
+                            </div>
+                            @if($usageCount > 0)
+                                <div class="mt-2 flex flex-wrap gap-1.5">
+                                    @foreach(array_slice($usedPages, 0, 4) as $usedPage)
+                                        <a href="{{ route('admin.pages.edit', $usedPage['id']) }}"
+                                           class="rounded-full bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100"
+                                           title="/{{ $usedPage['slug'] }}">
+                                            <i class="fas fa-file-lines mr-1"></i>{{ $usedPage['title'] }}
+                                        </a>
+                                    @endforeach
+                                    @if($usageCount > 4)
+                                        <span class="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500">+{{ $usageCount - 4 }} daha</span>
+                                    @endif
+                                </div>
+                            @else
+                                <p class="mt-1 text-xs text-gray-500">Bu şablon henüz hiçbir sayfada kullanılmıyor.</p>
+                            @endif
+                        </div>
 
                         <div class="mt-4 flex items-center gap-2">
                             <a href="{{ route('admin.section-templates.edit', $sectionTemplate) }}"

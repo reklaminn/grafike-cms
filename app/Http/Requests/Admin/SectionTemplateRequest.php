@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -20,7 +21,13 @@ class SectionTemplateRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $type = $this->input('type') === '__custom'
+            ? $this->input('type_custom')
+            : $this->input('type');
+
         $this->merge([
+            'type' => $this->normalizeKey($type),
+            'variation' => $this->normalizeKey($this->input('variation')),
             'schema_json' => $this->decodeJsonInput('schema_json'),
             'legacy_config_map_json' => $this->decodeJsonInput('legacy_config_map_json'),
             'default_content_json' => $this->decodeJsonInput('default_content_json'),
@@ -35,11 +42,12 @@ class SectionTemplateRequest extends FormRequest
         return [
             'theme_id' => ['required', 'exists:themes,id'],
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'max:100'],
+            'type' => ['required', 'string', 'max:100', 'regex:/^[a-z0-9][a-z0-9_-]*$/'],
             'variation' => [
                 'required',
                 'string',
                 'max:100',
+                'regex:/^[a-z0-9][a-z0-9_-]*$/',
                 Rule::unique('section_templates')
                     ->where(fn ($query) => $query->where('theme_id', $this->input('theme_id'))
                         ->where('type', $this->input('type')))
@@ -79,7 +87,9 @@ class SectionTemplateRequest extends FormRequest
                     $v->errors()->add('schema_json', 'Schema JSON içindeki her alan için type zorunlu. Eksik satır: '.($index + 1).'.');
                 }
 
-                if (blank($field['key'] ?? $field['name'] ?? null)) {
+                $hasMapKey = is_string($index) && filled($index);
+
+                if (! $hasMapKey && blank($field['key'] ?? $field['name'] ?? null)) {
                     $v->errors()->add('schema_json', 'Schema JSON içindeki her alan için key veya name zorunlu. Eksik satır: '.($index + 1).'.');
                 }
             }
@@ -90,6 +100,8 @@ class SectionTemplateRequest extends FormRequest
     {
         return [
             'variation.unique' => 'Bu tema ve block tipi için aynı varyasyon zaten mevcut.',
+            'type.regex' => 'Type sadece küçük harf, rakam, tire ve alt çizgi içermeli.',
+            'variation.regex' => 'Variation sadece küçük harf, rakam, tire ve alt çizgi içermeli.',
         ];
     }
 
@@ -119,5 +131,20 @@ class SectionTemplateRequest extends FormRequest
         }
 
         return is_array($decoded) ? $decoded : null;
+    }
+
+    private function normalizeKey(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return Str::of($value)
+            ->trim()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9_-]+/', '-')
+            ->replaceMatches('/-+/', '-')
+            ->trim('-_')
+            ->value();
     }
 }
