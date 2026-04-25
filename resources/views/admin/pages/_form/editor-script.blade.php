@@ -21,7 +21,7 @@
  * Reusable Alpine sub-component for rendering a single schema field.
  * Intended to be used as:
  *   <div x-data="blockFieldInput(parentRef, fieldKey, fieldSchema)">
- *       @include('admin.pages._form._field-types')
+ *       @@include('admin.pages._form._field-types')
  *   </div>
  *
  * parentRef  — the reactive object that owns the value (e.g. block.content or repeater item)

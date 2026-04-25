@@ -101,7 +101,7 @@
                    placeholder="https://…"
                    class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
             <button type="button"
-                    @click="openMediaPicker()"
+                    @@click="openMediaPicker()"
                     class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 active:bg-gray-100">
                 <i class="fas fa-images"></i> Seç
             </button>
@@ -111,7 +111,7 @@
             <img :src="parentRef[fieldKey]"
                  alt=""
                  class="h-20 w-full rounded-lg border border-gray-200 object-cover object-center"
-                 @error="$el.style.display = 'none'">
+                 @@error="$el.style.display = 'none'">
         </template>
 
         {{-- Media Picker Modal (teleported to body to escape stacking-context issues) --}}
@@ -119,8 +119,8 @@
             <div x-show="mediaPickerOpen"
                  x-cloak
                  class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
-                 @click.self="closeMediaPicker()"
-                 @keydown.escape.window="if (mediaPickerOpen) { closeMediaPicker(); $event.stopPropagation(); }">
+                 @@click.self="closeMediaPicker()"
+                 @@keydown.escape.window="if (mediaPickerOpen) { closeMediaPicker(); $event.stopPropagation(); }">
                 <div class="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
                      style="max-height: calc(100vh - 4rem)">
 
@@ -135,7 +135,7 @@
                                    class="w-52 rounded-lg border border-gray-300 py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <button type="button"
-                                @click="closeMediaPicker()"
+                                @@click="closeMediaPicker()"
                                 class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
                             <i class="fas fa-xmark"></i>
                         </button>
@@ -160,12 +160,12 @@
                             <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                                 <template x-for="m in filteredMedia()" :key="m.id">
                                     <button type="button"
-                                            @click="selectMedia(m)"
+                                            @@click="selectMedia(m)"
                                             class="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100 hover:border-indigo-400 hover:ring-2 hover:ring-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-400">
                                         <img :src="m.thumbnail_url || m.url"
                                              :alt="m.file_name || m.name"
                                              class="h-full w-full object-cover"
-                                             @error="$el.style.opacity = '0.3'">
+                                             @@error="$el.style.opacity = '0.3'">
                                         <div class="absolute inset-x-0 bottom-0 truncate bg-black/50 px-1 py-0.5 text-[10px] leading-tight text-white opacity-0 transition-opacity group-hover:opacity-100"
                                              x-text="m.file_name || m.name"></div>
                                     </button>
