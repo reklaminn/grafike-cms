@@ -4,6 +4,7 @@
  *
  * Block types: heading | paragraph | image (gallery) | video | html
  */
+import Image from "next/image";
 import type { ArticleBlock } from "@/lib/types";
 
 // ─── Individual block components ─────────────────────────────────────────────
@@ -38,11 +39,14 @@ function SingleFigure({
 }) {
   return (
     <figure style={{ margin: "1.5rem 0" }}>
-      <img
+      {/* Use unoptimized for editor-uploaded images with unknown dimensions */}
+      <Image
         src={url}
         alt={alt ?? ""}
-        loading="lazy"
-        style={{ maxWidth: "100%", borderRadius: "0.5rem", display: "block" }}
+        width={1200}
+        height={800}
+        unoptimized
+        style={{ maxWidth: "100%", height: "auto", borderRadius: "0.5rem", display: "block" }}
       />
       {caption && (
         <figcaption

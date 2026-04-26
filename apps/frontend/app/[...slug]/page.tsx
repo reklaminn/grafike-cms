@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { RegionLayoutRenderer } from "@/components/sections/region-layout-renderer";
 import { SectionRenderer } from "@/components/sections/section-renderer";
 import { ArticleBlockRenderer } from "@/components/articles/article-block-renderer";
@@ -12,6 +13,7 @@ import {
   getSitePayload,
 } from "@/lib/api/client";
 import { getRenderableSections } from "@/lib/sections/region-sections";
+import { buildMetadata, canonicalUrl } from "@/lib/seo";
 
 type CatchAllPageProps = {
   params: Promise<{ slug?: string[] }>;
@@ -27,10 +29,13 @@ export async function generateMetadata({ params }: CatchAllPageProps): Promise<M
   // Try page first
   const payload = await getPagePayload(slug);
   if (payload?.seo) {
-    return {
-      title: payload.seo.title,
+    return buildMetadata({
+      title:       payload.seo.title,
       description: payload.seo.description,
-    };
+      canonical:   canonicalUrl(`/${slug}`),
+      noindex:     false,
+      ogType:      "website",
+    });
   }
 
   // Try article (last segment)
@@ -38,10 +43,17 @@ export async function generateMetadata({ params }: CatchAllPageProps): Promise<M
   if (lastSegment) {
     const detail = await getArticle(lastSegment);
     if (detail) {
-      return {
-        title: detail.seo?.title ?? detail.article.title,
-        description: detail.seo?.description ?? detail.article.excerpt ?? "",
-      };
+      const coverUrl = detail.article.cover?.url ?? null;
+      return buildMetadata({
+        title:         detail.seo?.title ?? detail.article.title,
+        description:   detail.seo?.description ?? detail.article.excerpt ?? "",
+        canonical:     canonicalUrl(`/${segments.join("/")}`),
+        noindex:       detail.seo?.noindex ?? false,
+        ogType:        "article",
+        ogImage:       coverUrl,
+        publishedTime: detail.article.published_at,
+        authorName:    detail.author?.name ?? null,
+      });
     }
   }
 
@@ -132,11 +144,14 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
 
       {/* Cover image */}
       {article.cover?.url && (
-        <div style={{ marginBottom: "2rem", borderRadius: "0.75rem", overflow: "hidden", aspectRatio: "16/9" }}>
-          <img
+        <div style={{ marginBottom: "2rem", borderRadius: "0.75rem", overflow: "hidden", position: "relative", aspectRatio: "16/9" }}>
+          <Image
             src={article.cover.url}
             alt={article.cover.alt ?? article.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            fill
+            priority
+            sizes="(max-width: 780px) 100vw, 780px"
+            style={{ objectFit: "cover" }}
           />
         </div>
       )}

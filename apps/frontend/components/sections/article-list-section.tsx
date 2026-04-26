@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getArticles } from "@/lib/api/client";
 import type { ArticleListItem, PageSection } from "@/lib/types";
 
@@ -33,12 +34,13 @@ function ArticleCard({ article, pageSlug }: { article: ArticleListItem; pageSlug
       }}
     >
       {article.cover?.url && (
-        <Link href={href} style={{ display: "block", overflow: "hidden", aspectRatio: "16/9" }}>
-          <img
+        <Link href={href} style={{ display: "block", overflow: "hidden", position: "relative", aspectRatio: "16/9" }}>
+          <Image
             src={article.cover.thumb ?? article.cover.url}
             alt={article.cover.alt ?? article.title}
-            loading="lazy"
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            style={{ objectFit: "cover" }}
           />
         </Link>
       )}
