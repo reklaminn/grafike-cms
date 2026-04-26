@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import type {
   ArticleDetailPayload,
   ArticleListPayload,
+  FormPayload,
   MenuPayload,
   MenusPayload,
   PagePayload,
@@ -105,4 +106,8 @@ export async function getArticles(options: GetArticlesOptions = {}): Promise<Art
 
 export async function getArticle(slug: string): Promise<ArticleDetailPayload | null> {
   return fetchJson<ArticleDetailPayload | null>(`/api/v1/articles/${slug}`, null);
+}
+
+export async function getForm(formId: number | string): Promise<FormPayload | null> {
+  return fetchJson<FormPayload | null>(`/api/v1/forms/${formId}`, null);
 }

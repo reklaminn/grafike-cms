@@ -154,6 +154,28 @@ export type ArticleListPayload = {
   };
 };
 
+export type FormField = {
+  id: number;
+  name: string;
+  label: string;
+  type: "text" | "email" | "textarea" | "select" | "checkbox" | "radio" | "tel" | "url" | "number" | "date" | "file" | "hidden";
+  placeholder?: string | null;
+  default_value?: string | null;
+  options: Array<{ label: string; value: string }> | string[];
+  is_required: boolean;
+  css_class?: string | null;
+  section?: string | null;
+};
+
+export type FormPayload = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  requires_captcha: boolean;
+  fields: FormField[];
+};
+
 export type ArticleBlock = {
   type: "heading" | "paragraph" | "image" | "video" | "html";
   level?: number;

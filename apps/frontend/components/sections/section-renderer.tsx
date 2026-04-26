@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { HtmlSection } from "@/components/sections/html-section";
 import { ArticleListSection } from "@/components/sections/article-list-section";
+import { FormSectionLoader } from "@/components/sections/form-section-loader";
 import type { MenusPayload, PageSection, SettingsPayload, SitePayload } from "@/lib/types";
 import { buildElementProps } from "@/lib/sections/element-props";
 import { renderBasicHtmlSection } from "@/lib/sections/basic-html-renderer";
@@ -20,6 +21,10 @@ export function SectionRenderer({ section, site, settings, menus, pageId, lang }
   // ── Dynamic data sections ─────────────────────────────────────────────
   if (section.type === "article-list") {
     return <ArticleListSection section={section} pageId={pageId} lang={lang} />;
+  }
+
+  if (section.type === "form") {
+    return <FormSectionLoader section={section} />;
   }
 
   // ── HTML template engine ──────────────────────────────────────────────
