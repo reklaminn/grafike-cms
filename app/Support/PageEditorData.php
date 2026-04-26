@@ -79,6 +79,11 @@ final class PageEditorData
             return 'legacy';
         }
 
+        // Create mode: no page yet → always default to frontend builder
+        if ($this->page === null) {
+            return 'frontend';
+        }
+
         if ($this->hasSectionsJson()) {
             return 'frontend';
         }
@@ -87,7 +92,7 @@ final class PageEditorData
             return 'legacy';
         }
 
-        return $this->page?->site ? 'frontend' : 'legacy';
+        return $this->page->site ? 'frontend' : 'legacy';
     }
 
     public function showBuilderToggle(): bool
@@ -113,6 +118,11 @@ final class PageEditorData
 
     public function shouldRenderFrontendEditor(): bool
     {
-        return $this->page !== null && ($this->page->site !== null || ! empty($this->initialRegions()['regions']['body'] ?? []));
+        // Create mode: always render the frontend editor so users can add blocks immediately
+        if ($this->page === null) {
+            return true;
+        }
+
+        return $this->page->site !== null || ! empty($this->initialRegions()['regions']['body'] ?? []);
     }
 }
