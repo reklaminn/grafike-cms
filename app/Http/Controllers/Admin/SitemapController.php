@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SeoEntry;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class SitemapController extends Controller
 {
@@ -38,5 +39,14 @@ class SitemapController extends Controller
         return redirect()
             ->route('admin.sitemap.index')
             ->with('success', 'Sitemap ayarları güncellendi.');
+    }
+
+    public function refresh()
+    {
+        Cache::forget('sitemap_xml');
+
+        return redirect()
+            ->route('admin.sitemap.index')
+            ->with('success', 'Sitemap önbelleği temizlendi. Bir sonraki ziyarette yeniden oluşturulacak.');
     }
 }

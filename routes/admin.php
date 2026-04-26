@@ -77,6 +77,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Sitemap Configuration
         Route::get('sitemap', [SitemapController::class, 'index'])->name('sitemap.index');
         Route::put('sitemap', [SitemapController::class, 'update'])->name('sitemap.update');
+        Route::post('sitemap/refresh', [SitemapController::class, 'refresh'])->name('sitemap.refresh');
 
         // Media Library
         Route::get('media', [MediaController::class, 'index'])->name('media.index');

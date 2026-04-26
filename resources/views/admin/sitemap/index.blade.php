@@ -11,10 +11,24 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <p class="text-sm text-gray-500">Her URL için sitemap öncelik, değişim sıklığı ve dahil etme ayarlarını yönetin.</p>
-            <button type="submit"
-                    class="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-                <i class="fas fa-save mr-1"></i> Kaydet
-            </button>
+            <div class="flex items-center gap-3">
+                <a href="{{ url('sitemap.xml') }}" target="_blank"
+                   class="px-4 py-2 border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-external-link-alt mr-1"></i> Sitemap'i Gör
+                </a>
+                <form method="POST" action="{{ route('admin.sitemap.refresh') }}" class="inline">
+                    @csrf
+                    <button type="submit"
+                            class="px-4 py-2 border border-amber-300 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-50 transition-colors"
+                            onclick="return confirm('Sitemap önbelleği temizlenecek. Devam etmek istiyor musunuz?')">
+                        <i class="fas fa-rotate mr-1"></i> Yenile
+                    </button>
+                </form>
+                <button type="submit"
+                        class="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-save mr-1"></i> Kaydet
+                </button>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
