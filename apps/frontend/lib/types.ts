@@ -124,6 +124,73 @@ export type PageRegions = {
   footer: PageRegionRow[];
 };
 
+export type ArticleCover = {
+  url: string;
+  thumb: string;
+  alt: string;
+} | null;
+
+export type ArticleListItem = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  display_date: string | null;
+  published_at: string | null;
+  is_featured: boolean;
+  cover: ArticleCover;
+  author: { id: number; name: string } | null;
+  language: { id: number; code: string } | null;
+  page: { id: number; title: string; slug: string } | null;
+};
+
+export type ArticleListPayload = {
+  data: ArticleListItem[];
+  meta: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+  };
+};
+
+export type ArticleBlock = {
+  type: "heading" | "paragraph" | "image" | "video" | "html";
+  level?: number;
+  text?: string;
+  content?: string;
+  images?: Array<{ url: string; alt?: string; caption?: string }>;
+  url?: string;
+  alt?: string;
+  caption?: string;
+  embed_url?: string;
+  code?: string;
+};
+
+export type ArticleDetail = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  body: string | null;
+  content_json: ArticleBlock[];
+  display_date: string | null;
+  published_at: string | null;
+  listing_variant: string | null;
+  detail_variant: string | null;
+  is_featured: boolean;
+  cover: ArticleCover;
+  gallery: Array<{ url: string; thumb: string; name: string; alt: string }>;
+};
+
+export type ArticleDetailPayload = {
+  article: ArticleDetail;
+  author: { id: number; name: string } | null;
+  language: { id: number; code: string; locale: string; name: string } | null;
+  page: { id: number; title: string; slug: string } | null;
+  seo: { title: string; description: string; canonical: string; noindex: boolean };
+};
+
 export type PagePayload = {
   page: {
     id: number;

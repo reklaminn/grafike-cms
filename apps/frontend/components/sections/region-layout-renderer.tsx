@@ -8,6 +8,8 @@ type RegionLayoutRendererProps = {
   site: SitePayload["site"];
   settings: SettingsPayload["settings"];
   menus: MenusPayload;
+  pageId?: number;
+  lang?: string;
 };
 
 function columnWidthPercent(column: PageRegionColumn): number {
@@ -41,6 +43,8 @@ function renderColumn(
   site: SitePayload["site"],
   settings: SettingsPayload["settings"],
   menus: MenusPayload,
+  pageId?: number,
+  lang?: string,
 ) {
   if (column.is_active === false) {
     return null;
@@ -64,7 +68,7 @@ function renderColumn(
 
   const blocks = (column.blocks || [])
     .filter((block) => block.is_active !== false)
-    .map((block) => <SectionRenderer key={block.id} section={block} site={site} settings={settings} menus={menus} />);
+    .map((block) => <SectionRenderer key={block.id} section={block} site={site} settings={settings} menus={menus} pageId={pageId} lang={lang} />);
 
   const hasColumnChrome = Boolean(
     column.css_class ||
@@ -95,6 +99,8 @@ function renderRow(
   site: SitePayload["site"],
   settings: SettingsPayload["settings"],
   menus: MenusPayload,
+  pageId?: number,
+  lang?: string,
 ) {
   if (row.is_active === false) {
     return null;
@@ -109,7 +115,7 @@ function renderRow(
     customAttributes: row.custom_attributes,
   });
 
-  const rowChildren = (row.columns || []).map((column) => renderColumn(column, site, settings, menus));
+  const rowChildren = (row.columns || []).map((column) => renderColumn(column, site, settings, menus, pageId, lang));
   const hasRowChrome = Boolean(
     row.container ||
     row.wrapper_tag ||
@@ -140,11 +146,11 @@ function renderRow(
   );
 }
 
-export function RegionLayoutRenderer({ regions, site, settings, menus }: RegionLayoutRendererProps) {
+export function RegionLayoutRenderer({ regions, site, settings, menus, pageId, lang }: RegionLayoutRendererProps) {
   return (
     <>
       {(["header", "body", "footer"] as const).flatMap((region) =>
-        (regions[region] || []).map((row) => renderRow(row, site, settings, menus)),
+        (regions[region] || []).map((row) => renderRow(row, site, settings, menus, pageId, lang)),
       )}
     </>
   );

@@ -1,5 +1,13 @@
 import { headers } from "next/headers";
-import type { MenuPayload, MenusPayload, PagePayload, SettingsPayload, SitePayload } from "@/lib/types";
+import type {
+  ArticleDetailPayload,
+  ArticleListPayload,
+  MenuPayload,
+  MenusPayload,
+  PagePayload,
+  SettingsPayload,
+  SitePayload,
+} from "@/lib/types";
 import {
   mockHeaderMenuPayload,
   mockPagePayload,
@@ -69,4 +77,32 @@ export async function getPagePayload(slug: string): Promise<PagePayload | null> 
   const fallback = mockPagePayload(slug);
 
   return fetchJson<PagePayload | null>(`/api/v1/pages/${slug}`, fallback);
+}
+
+export type GetArticlesOptions = {
+  pageId?: number;
+  siteId?: number;
+  lang?: string;
+  featuredOnly?: boolean;
+  limit?: number;
+  page?: number;
+};
+
+export async function getArticles(options: GetArticlesOptions = {}): Promise<ArticleListPayload> {
+  const params = new URLSearchParams();
+  if (options.pageId)      params.set("page_id",      String(options.pageId));
+  if (options.siteId)      params.set("site_id",       String(options.siteId));
+  if (options.lang)        params.set("lang",           options.lang);
+  if (options.featuredOnly) params.set("featured_only", "1");
+  if (options.limit)       params.set("limit",          String(options.limit));
+  if (options.page)        params.set("page",           String(options.page));
+
+  const qs = params.toString();
+  const path = `/api/v1/articles${qs ? `?${qs}` : ""}`;
+
+  return fetchJson<ArticleListPayload>(path, { data: [], meta: { current_page: 1, per_page: 12, total: 0, last_page: 1 } }, false);
+}
+
+export async function getArticle(slug: string): Promise<ArticleDetailPayload | null> {
+  return fetchJson<ArticleDetailPayload | null>(`/api/v1/articles/${slug}`, null);
 }

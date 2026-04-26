@@ -22,6 +22,9 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
     notFound();
   }
 
+  const pageId = payload.page.id;
+  const lang   = sitePayload.site.locale?.split("_")[0] ?? "tr";
+
   if (payload.page.regions) {
     return (
       <main className="page-stack">
@@ -30,6 +33,8 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
           site={sitePayload.site}
           settings={settingsPayload.settings}
           menus={menusPayload}
+          pageId={pageId}
+          lang={lang}
         />
       </main>
     );
@@ -46,6 +51,8 @@ export default async function CatchAllPage({ params }: CatchAllPageProps) {
           site={sitePayload.site}
           settings={settingsPayload.settings}
           menus={menusPayload}
+          pageId={pageId}
+          lang={lang}
         />
       ))}
     </main>

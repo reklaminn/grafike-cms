@@ -1,5 +1,6 @@
 import { createElement } from "react";
 import { HtmlSection } from "@/components/sections/html-section";
+import { ArticleListSection } from "@/components/sections/article-list-section";
 import type { MenusPayload, PageSection, SettingsPayload, SitePayload } from "@/lib/types";
 import { buildElementProps } from "@/lib/sections/element-props";
 import { renderBasicHtmlSection } from "@/lib/sections/basic-html-renderer";
@@ -9,9 +10,19 @@ type SectionRendererProps = {
   site: SitePayload["site"];
   settings: SettingsPayload["settings"];
   menus: MenusPayload;
+  /** Current page ID — forwarded to article-list sections for dynamic fetching */
+  pageId?: number;
+  /** Current language code — forwarded to article-list sections */
+  lang?: string;
 };
 
-export function SectionRenderer({ section, site, settings, menus }: SectionRendererProps) {
+export function SectionRenderer({ section, site, settings, menus, pageId, lang }: SectionRendererProps) {
+  // ── Dynamic data sections ─────────────────────────────────────────────
+  if (section.type === "article-list") {
+    return <ArticleListSection section={section} pageId={pageId} lang={lang} />;
+  }
+
+  // ── HTML template engine ──────────────────────────────────────────────
   const props = buildElementProps({
     className: section.css_class,
     id: section.element_id,
@@ -31,6 +42,7 @@ export function SectionRenderer({ section, site, settings, menus }: SectionRende
     return createElement(tag, props, <HtmlSection html={html} />);
   }
 
+  // ── Component placeholder ─────────────────────────────────────────────
   const tag = section.wrapper_tag || "section";
 
   return createElement(
