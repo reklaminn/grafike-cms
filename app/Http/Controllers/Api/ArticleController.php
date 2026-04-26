@@ -3,31 +3,39 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\ResolvesApiLanguage;
 use App\Http\Resources\Api\ArticleCollection;
 use App\Http\Resources\Api\ArticleResource;
 use App\Models\Article;
 use App\Services\SeoManager\SeoManager;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ArticleController extends Controller
 {
+    use ResolvesApiLanguage;
+
     public function __construct(protected SeoManager $seoManager) {}
 
     public function index(Request $request): ArticleCollection
     {
-        $perPage = min(max((int) $request->integer('limit', 12), 1), 50);
+        $perPage  = min(max((int) $request->integer('limit', 12), 1), 50);
+        $siteId   = $request->integer('site_id') ?: null;
+        $pageId   = $request->integer('page_id') ?: null;
+        $language = $this->resolveLanguage($request->query('lang'));
+        $featured = $request->boolean('featured_only');
 
-        $articles = Article::query()
-            ->published()
-            ->with(['page', 'seo', 'media'])
-            ->when($request->filled('page_id'), fn ($query) => $query->where('page_id', $request->integer('page_id')))
-            ->when($request->boolean('featured_only'), fn ($query) => $query->featured())
-            ->orderByDesc('published_at')
-            ->orderBy('sort_order')
-            ->paginate($perPage)
-            ->withQueryString();
+        $cacheEnabled = config('cms.cache.enabled', true);
+        $cacheTtl     = (int) config('cms.cache.ttl', 600);
+        $cacheKey     = 'api.articles.' . md5(serialize($request->only(
+            'limit', 'page', 'site_id', 'page_id', 'lang', 'featured_only'
+        )));
 
-        return new ArticleCollection($articles);
+        $paginator = $cacheEnabled
+            ? Cache::remember($cacheKey, $cacheTtl, fn () => $this->buildQuery($siteId, $pageId, $language?->id, $featured)->paginate($perPage)->withQueryString())
+            : $this->buildQuery($siteId, $pageId, $language?->id, $featured)->paginate($perPage)->withQueryString();
+
+        return new ArticleCollection($paginator);
     }
 
     public function show(string $slug)
@@ -38,8 +46,8 @@ class ArticleController extends Controller
 
         if (($resolved['type'] ?? null) === 'redirect') {
             return response()->json([
-                'type' => 'redirect',
-                'url' => $resolved['url'],
+                'type'        => 'redirect',
+                'url'         => $resolved['url'],
                 'status_code' => $resolved['status_code'],
             ]);
         }
@@ -48,8 +56,23 @@ class ArticleController extends Controller
         abort_if(! $entity instanceof Article, 404);
         abort_if($entity->status !== 'published', 404);
 
-        $entity->loadMissing(['page', 'seo', 'language', 'media']);
+        $entity->loadMissing(['page', 'seo', 'language', 'author', 'media']);
 
         return ArticleResource::make($entity);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+
+    private function buildQuery(?int $siteId, ?int $pageId, ?int $languageId, bool $featured)
+    {
+        return Article::query()
+            ->published()
+            ->with(['page', 'language', 'author', 'media'])
+            ->when($siteId,     fn ($q) => $q->where('site_id', $siteId))
+            ->when($pageId,     fn ($q) => $q->where('page_id', $pageId))
+            ->when($languageId, fn ($q) => $q->where('language_id', $languageId))
+            ->when($featured,   fn ($q) => $q->featured())
+            ->orderByDesc('published_at')
+            ->orderBy('sort_order');
     }
 }
